@@ -1,7 +1,6 @@
 #ifndef ACTIVATIONS
 #define ACTIVATIONS
 
-#include <iostream>
 #include <string>
 #include <cmath>
 #include <Eigen/Dense>
