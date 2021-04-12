@@ -3,10 +3,14 @@
 
 #include <iostream>
 #include <string>
+#include <cmath>
 #include <Eigen/Dense>
 
-Eigen::MatrixXd sigmoid(Eigen::Ref<Eigen::MatrixXd> M);
-Eigen::MatrixXd tanh(Eigen::Ref<Eigen::MatrixXd> M);
-Eigen::MatrixXd reLu(Eigen::Ref<Eigen::MatrixXd> M);
+void sigmoid(Eigen::MatrixXd& Z, Eigen::MatrixXd& S);
+void tanh(Eigen::MatrixXd& Z, Eigen::MatrixXd& S);
+void reLU(Eigen::MatrixXd& Z, Eigen::MatrixXd& S);
+
+void activation(std::string nameActivation, Eigen::MatrixXd& Z, Eigen::MatrixXd& S);
 
 #endif
+
