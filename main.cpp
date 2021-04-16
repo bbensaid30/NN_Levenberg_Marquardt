@@ -1,16 +1,24 @@
 #include <iostream>
 #include <string>
 #include <iterator>
+#include <vector>
 #include <Eigen/Dense>
 #include "training.h"
+#include "data.h"
 
 int main()
 {
+    //Load the data
+    std::vector<Eigen::MatrixXd> data(2);
+    int nbPoints=100;
+    data = sineWave(nbPoints);
+    double percTrain = 0.9;
+    std::vector<Eigen::MatrixXd> dataTrainTest(4);
+    dataTrainTest = trainTestData(data,percTrain);
+
     // Problem variables
-    int const n0=3, nL=1, P=100;
+    int const n0=data[0].rows(), nL=data[1].rows();
     int N=0;
-    Eigen::MatrixXd X = Eigen::MatrixXd::Random(n0,P);
-    Eigen::MatrixXd Y = Eigen::MatrixXd::Random(nL,P);
     int const L=2;
     int nbNeurons[L+1];
     int globalIndices[2*L];
@@ -40,9 +48,10 @@ int main()
     N+=nbNeurons[L-1]*nbNeurons[L]; globalIndices[2*L-2]=N; N+=nbNeurons[L]; globalIndices[2*L-1]=N;
 
     //Training
-    double mu=10, factor=10, eps=std::pow(10,-3);
+    double mu=10, factor=10, eps=std::pow(10,-8);
     int maxIter=2000;
-    train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);
+    train(dataTrainTest[0],dataTrainTest[1],L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);
+
 
     return 0;
 
