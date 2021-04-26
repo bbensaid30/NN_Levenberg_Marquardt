@@ -3,19 +3,20 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <Eigen/Dense>
 #include "activations.h"
 
-void fforward(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, int const& P, int const nbNeurons[], std::string const activations[],
-Eigen::MatrixXd weights[], Eigen::VectorXd bias[], Eigen::MatrixXd As[], Eigen::MatrixXd slopes[], Eigen::MatrixXd& E);
+void fforward(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
+std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::vector<Eigen::MatrixXd>& As, std::vector<Eigen::MatrixXd>& slopes, Eigen::MatrixXd& E);
 
-void backward(int const& L, int const& P, int const nbNeurons[], int const globalIndices[], Eigen::MatrixXd weights[], Eigen::VectorXd bias[],
-Eigen::MatrixXd As[], Eigen::MatrixXd slopes[], Eigen::MatrixXd& E, Eigen::VectorXd& gradient, Eigen::MatrixXd& Q);
+void backward(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias,
+std::vector<Eigen::MatrixXd>& As, std::vector<Eigen::MatrixXd>& slopes, Eigen::MatrixXd& E, Eigen::VectorXd& gradient, Eigen::MatrixXd& Q);
 
-void update(int const& L, int const nbNeurons[], int const globalIndices[], Eigen::MatrixXd weights[], Eigen::VectorXd bias[],
+void update(int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias,
 Eigen::VectorXd const& gradient, Eigen::MatrixXd const& hessian);
 
-void train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, int const nbNeurons[], int const globalIndices[], std::string const activations[],
-Eigen::MatrixXd weights[], Eigen::VectorXd bias[], double& mu, double& factor, double const& eps, int const& maxIter);
+void train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<std::string> const& activations,
+std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu=10, double factor=10, double const eps=std::pow(10,-6), int const maxIter=2000);
 
 #endif

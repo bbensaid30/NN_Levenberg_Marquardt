@@ -1,7 +1,7 @@
 #include "training.h"
 
-void fforward(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, int const& P, int const nbNeurons[], std::string const activations[],
-Eigen::MatrixXd weights[], Eigen::VectorXd bias[], Eigen::MatrixXd As[], Eigen::MatrixXd slopes[], Eigen::MatrixXd& E)
+void fforward(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
+std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::vector<Eigen::MatrixXd>& As, std::vector<Eigen::MatrixXd>& slopes, Eigen::MatrixXd& E)
 {
     int l;
     for (l=0;l<L;l++)
@@ -13,8 +13,8 @@ Eigen::MatrixXd weights[], Eigen::VectorXd bias[], Eigen::MatrixXd As[], Eigen::
     E=Y-As[L];
 }
 
-void backward(int const& L, int const& P, int const nbNeurons[], int const globalIndices[], Eigen::MatrixXd weights[], Eigen::VectorXd bias[],
-Eigen::MatrixXd As[], Eigen::MatrixXd slopes[], Eigen::MatrixXd& E, Eigen::VectorXd& gradient, Eigen::MatrixXd& Q)
+void backward(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias,
+std::vector<Eigen::MatrixXd>& As, std::vector<Eigen::MatrixXd>& slopes, Eigen::MatrixXd& E, Eigen::VectorXd& gradient, Eigen::MatrixXd& Q)
 {
     int l,m,p,n,nL=nbNeurons[L],jump;
     int N=globalIndices[2*L-1];
@@ -33,24 +33,32 @@ Eigen::MatrixXd As[], Eigen::MatrixXd slopes[], Eigen::MatrixXd& E, Eigen::Vecto
                 dzL(n) = (n==m) ? -slopes[L-1](m,p) : 0;
             }
             dz=dzL;
+            jump=nbNeurons[L]*nbNeurons[L-1];
+            dw=dz*(As[L-1].col(p).transpose());
+            dw.resize(jump,1);
+            Jpm.segment(globalIndices[2*(L-1)]-jump,jump)=dw;
+            jump=nbNeurons[L];
+            Jpm.segment(globalIndices[2*(L-1)+1]-jump,jump)=dz;
             for (l=L-1;l>0;l--)
             {
-                jump=nbNeurons[l+1]*nbNeurons[l];
-                dw=dz*(As[l].col(p).transpose());
-                dw.resize(jump,1);
-                Jpm.segment(globalIndices[2*l]-jump,jump)=dw;
-                jump=nbNeurons[l+1];
-                Jpm.segment(globalIndices[2*l+1]-jump,jump)=dz;
-
                 dz=(weights[l].transpose()*dz).cwiseProduct(slopes[l-1].col(p));
+
+                jump=nbNeurons[l]*nbNeurons[l-1];
+                dw=dz*(As[l-1].col(p).transpose());
+                dw.resize(jump,1);
+                Jpm.segment(globalIndices[2*(l-1)]-jump,jump)=dw;
+                jump=nbNeurons[l];
+                Jpm.segment(globalIndices[2*(l-1)+1]-jump,jump)=dz;
+
             }
             Q+=Jpm*Jpm.transpose();
             gradient+=E(m,p)*Jpm;
         }
     }
+
 }
 
-void update(int const& L, int const nbNeurons[], int const globalIndices[], Eigen::MatrixXd weights[], Eigen::VectorXd bias[],
+void update(int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias,
 Eigen::VectorXd const& gradient, Eigen::MatrixXd const& hessian)
 {
     Eigen::VectorXd delta = hessian.llt().solve(-gradient);
@@ -68,32 +76,33 @@ Eigen::VectorXd const& gradient, Eigen::MatrixXd const& hessian)
 
 }
 
-void train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, int const nbNeurons[], int const globalIndices[], std::string const activations[],
-Eigen::MatrixXd weights[], Eigen::VectorXd bias[], double& mu, double& factor, double const& eps, int const& maxIter)
+void train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<std::string> const& activations,
+std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu, double factor, double const eps, int const maxIter)
 {
 
     assert (factor>1);
 
     int N=globalIndices[2*L-1], P=X.cols(), iter=1;
 
-    Eigen::MatrixXd As[L+1]; As[0]=X;
-    Eigen::MatrixXd slopes[L];
+    std::vector<Eigen::MatrixXd> As(L+1); As[0]=X;
+    std::vector<Eigen::MatrixXd> slopes(L);
     Eigen::MatrixXd E(nbNeurons[L],P);
     Eigen::VectorXd gradient = Eigen::VectorXd::Zero(N);
     Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(N,N);
+    Eigen::MatrixXd H(N,N);
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(N,N);
 
-    Eigen::MatrixXd weightsPrec[L];
-    Eigen::MatrixXd biasPrec[L];
+    std::vector<Eigen::MatrixXd> weightsPrec(L);
+    std::vector<Eigen::VectorXd> biasPrec(L);
 
-    std::copy(weights,weights+L,weightsPrec); std::copy(bias,bias+L,biasPrec);
+    std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     double cost = 0.5*E.squaredNorm(), costPrec;
     backward(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E,gradient,Q);
-    Q+=mu*I;
-    update(L,nbNeurons,globalIndices,weights,bias,gradient,Q);
+    H = Q+mu*I;
+    update(L,nbNeurons,globalIndices,weights,bias,gradient,H);
 
-    while (gradient.norm()>eps || iter<maxIter)
+    while (gradient.norm()>eps && iter<maxIter)
     {
         costPrec=cost;
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
@@ -101,21 +110,24 @@ Eigen::MatrixXd weights[], Eigen::VectorXd bias[], double& mu, double& factor, d
 
         if (cost<costPrec)
         {
-            std::copy(weights,weights+L,weightsPrec); std::copy(bias,bias+L,biasPrec);
+            std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             gradient.setZero(); Q.setZero();
             mu/=factor;
             backward(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E,gradient,Q);
-            Q+=mu*I;
-            update(L,nbNeurons,globalIndices,weights,bias,gradient,Q);
+            H = Q+mu*I;
+            update(L,nbNeurons,globalIndices,weights,bias,gradient,H);
         }
         else
         {
-            std::copy(weightsPrec,weightsPrec+L,weights); std::copy(biasPrec,biasPrec+L,bias);
+            std::copy(weightsPrec.begin(),weightsPrec.end(),weights.begin()); std::copy(biasPrec.begin(),biasPrec.end(),bias.begin());
             mu*=factor;
+            H = Q+mu*I;
+            update(L,nbNeurons,globalIndices,weights,bias,gradient,H);
         }
 
         iter++;
     }
-    std::cout << gradient.norm() << std::endl;
+
+    std::cout << "Norme finale du gradient: " << gradient.norm() << std::endl;
 
 }
