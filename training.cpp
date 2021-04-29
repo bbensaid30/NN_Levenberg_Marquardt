@@ -76,13 +76,14 @@ Eigen::VectorXd const& gradient, Eigen::MatrixXd const& hessian)
 
 }
 
-void train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<std::string> const& activations,
+std::map<std::string,double> train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<std::string> const& activations,
 std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu, double factor, double const eps, int const maxIter)
 {
 
     assert (factor>1);
 
     int N=globalIndices[2*L-1], P=X.cols(), iter=1;
+    int endSequence=0, endSequenceMax=0, notBack=1, notBackMax=0, nbBack=0;
 
     std::vector<Eigen::MatrixXd> As(L+1); As[0]=X;
     std::vector<Eigen::MatrixXd> slopes(L);
@@ -113,6 +114,7 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             gradient.setZero(); Q.setZero();
             mu/=factor;
+            notBack++;
             backward(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E,gradient,Q);
             H = Q+mu*I;
             update(L,nbNeurons,globalIndices,weights,bias,gradient,H);
@@ -121,13 +123,24 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
         {
             std::copy(weightsPrec.begin(),weightsPrec.end(),weights.begin()); std::copy(biasPrec.begin(),biasPrec.end(),bias.begin());
             mu*=factor;
+            endSequence = iter;
+            if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
+            notBack=0; nbBack++;
+            //std::cout << "La valeur intermédiaire de w : " << weights[0] << std::endl;
+            //std::cout << "La valeur intermédiaire de b : " << bias[0] << std::endl;
             H = Q+mu*I;
             update(L,nbNeurons,globalIndices,weights,bias,gradient,H);
         }
 
         iter++;
     }
+    endSequence = iter;
+    if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
-    std::cout << "Norme finale du gradient: " << gradient.norm() << std::endl;
+    std::map<std::string,double> study;
+    study["iter"]=(double)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(double)(endSequenceMax-notBackMax);
+    study["endSequenceMax"]=(double)endSequenceMax; study["startSequenceFinal"]=(double)(iter-notBack); study["propBack"]=(double)nbBack/(double)iter;
+
+    return study;
 
 }
