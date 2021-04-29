@@ -1,6 +1,6 @@
 #include "init.h"
 
-void simple(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias)
+void simple(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias)
 {
     int const L = nbNeurons.size()-1;
     int l;
@@ -12,7 +12,7 @@ void simple(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& weig
     }
 }
 
-void uniform(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& a, double const& b)
+void uniform(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& a, double const& b)
 {
     std::random_device rd;
     std::mt19937 gen(rd());  //here you could also set a seed
@@ -24,7 +24,7 @@ void uniform(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& wei
     for (l=0;l<L;l++)
     {
         Eigen::MatrixXd random_matrix = Eigen::MatrixXd::Zero(nbNeurons[l+1],nbNeurons[l]).unaryExpr([&](double dummy){return distrib(gen);});
-        Eigen::VectorXd random_vector = Eigen::VectorXd::Zero(nbNeurons[l+1]).unaryExpr([&](float dummy){return distrib(gen);});
+        Eigen::VectorXd random_vector = Eigen::VectorXd::Zero(nbNeurons[l+1]).unaryExpr([&](double dummy){return distrib(gen);});
 
 
         weights[l] = random_matrix;
@@ -32,7 +32,7 @@ void uniform(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& wei
     }
 }
 
-void normal(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& mu, double const& sigma)
+void normal(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& mu, double const& sigma)
 {
     std::random_device rd;
     std::mt19937 gen(rd());  //here you could also set a seed
@@ -44,14 +44,14 @@ void normal(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& weig
     for (l=0;l<L;l++)
     {
         Eigen::MatrixXd random_matrix = Eigen::MatrixXd::Zero(nbNeurons[l+1],nbNeurons[l]).unaryExpr([&](double dummy){return distrib(gen);});
-        Eigen::VectorXd random_vector = Eigen::VectorXd::Zero(nbNeurons[l+1]).unaryExpr([&](float dummy){return distrib(gen);});
+        Eigen::VectorXd random_vector = Eigen::VectorXd::Zero(nbNeurons[l+1]).unaryExpr([&](double dummy){return distrib(gen);});
 
         weights[l] = random_matrix;
         bias[l] = random_vector;
     }
 }
 
-void initialisation(std::vector<int> const nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::vector<double> const& supParameters, std::string generator)
+void initialisation(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::vector<double> const& supParameters, std::string generator)
 {
     if (generator=="uniform")
     {
