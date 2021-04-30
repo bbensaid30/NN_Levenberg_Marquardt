@@ -77,12 +77,17 @@ Eigen::VectorXd const& gradient, Eigen::MatrixXd const& hessian)
 }
 
 std::map<std::string,double> train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<std::string> const& activations,
-std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu, double factor, double const eps, int const maxIter)
+std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu, double factor, double const eps, int const maxIter, bool record, std::string fileExtension)
 {
+
+
+    std::ofstream weightsFlux(("Record/weights"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost"+fileExtension+".csv").c_str());
+    if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
     assert (factor>1);
 
-    int N=globalIndices[2*L-1], P=X.cols(), iter=1;
+    int N=globalIndices[2*L-1], P=X.cols(), iter=1, l;
     int endSequence=0, endSequenceMax=0, notBack=1, notBackMax=0, nbBack=0;
 
     std::vector<Eigen::MatrixXd> As(L+1); As[0]=X;
@@ -101,6 +106,17 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
     double cost = 0.5*E.squaredNorm(), costPrec;
     backward(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E,gradient,Q);
     H = Q+mu*I;
+    if(record)
+    {
+        for(l=0;l<L;l++)
+        {
+            weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+            weightsFlux << weights[l] << std::endl;
+            weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+            weightsFlux << bias[l] << std::endl;
+            costFlux << cost << std::endl;
+        }
+    }
     update(L,nbNeurons,globalIndices,weights,bias,gradient,H);
 
     while (gradient.norm()>eps && iter<maxIter)
@@ -108,6 +124,18 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
         costPrec=cost;
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
         cost=0.5*E.squaredNorm();
+
+        if(record)
+        {
+            for(l=0;l<L;l++)
+            {
+                weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+                weightsFlux << weights[l] << std::endl;
+                weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+                weightsFlux << bias[l] << std::endl;
+                costFlux << cost << std::endl;
+            }
+        }
 
         if (cost<costPrec)
         {
