@@ -17,7 +17,6 @@ void tanh(Eigen::MatrixXd& Z, Eigen::MatrixXd& S)
     S = 1-Z.array().pow(2);
 }
 
-//Pas encore vectorisée
 void reLU(Eigen::MatrixXd& Z, Eigen::MatrixXd& S)
 {
     Eigen::MatrixXd U = Eigen::MatrixXd::Constant(Z.rows(),Z.cols(),1);
@@ -68,6 +67,14 @@ void activation(std::string nameActivation, Eigen::MatrixXd& Z, Eigen::MatrixXd&
     {
         expFive(Z,S);
     }
+    else if(nameActivation=="ratTwo")
+    {
+        ratTwo(Z,S,1);
+    }
+    else if(nameActivation=="cloche")
+    {
+        cloche(Z,S);
+    }
     else
     {
         linear(Z,S);
@@ -114,7 +121,17 @@ void expFive(Eigen::MatrixXd& Z, Eigen::MatrixXd& S,double c)
     Z = inter;
 }
 
+void ratTwo(Eigen::MatrixXd& Z, Eigen::MatrixXd& S,double c)
+{
+    double const normalization = 2.0/(c+2+std::sqrt(c*c+4));
+    Eigen::MatrixXd poly = Z.array().pow(2)-2*Z.array()+2;
+    S = (-2*Z.array().pow(2)+2*(2-c)*Z.array()+2*c)*(poly.array().pow(2)).inverse(); S*=normalization;
+    Z = (Z.array().pow(2)+c)*poly.array().inverse(); Z*=normalization;
+}
 
-
-
-
+void cloche(Eigen::MatrixXd& Z, Eigen::MatrixXd& S)
+{
+    Eigen::MatrixXd exp2 = (-0.5*Z.array().pow(2)).exp();
+    S = -Z.array()*exp2.array();
+    Z = exp2;
+}
