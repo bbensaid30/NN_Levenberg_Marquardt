@@ -32,9 +32,21 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="activations.cpp" />
+		<Unit filename="activations.h" />
+		<Unit filename="data.cpp" />
+		<Unit filename="data.h" />
 		<Unit filename="init.cpp" />
 		<Unit filename="init.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="test.cpp" />
+		<Unit filename="test.h" />
+		<Unit filename="training.cpp" />
+		<Unit filename="training.h" />
+		<Unit filename="training_entropie.cpp" />
+		<Unit filename="training_entropie.h" />
+		<Unit filename="utilities.cpp" />
+		<Unit filename="utilities.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
