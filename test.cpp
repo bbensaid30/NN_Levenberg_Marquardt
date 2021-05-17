@@ -1,6 +1,7 @@
 #include "test.h"
 
-void testPolyTwo(std::string const& distribution, std::vector<double> const& supParameters, int nbTirage, double mu, double factor, double const eps, int maxIter, double epsNeight)
+void testPolyTwo(std::string const& distribution, std::vector<double> const& supParameters, int nbTirage, std::string const algo, double mu, double factor,double const Rlim, double const RMin,
+ double const RMax, double const epsDiag, int const b, double const factorMin, double const power, double const alphaChap, double const eps, int maxIter, double epsNeight)
 {
     Eigen::MatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -23,25 +24,38 @@ void testPolyTwo(std::string const& distribution, std::vector<double> const& sup
         N+=nbNeurons[l]*nbNeurons[l+1]; globalIndices[2*l]=N; N+=nbNeurons[l+1]; globalIndices[2*l+1]=N;
     }
 
-    int i;
+    int i; unsigned seed;
     std::map<std::string,double> study;
     Eigen::VectorXd currentPoint(2);
     std::vector<Eigen::VectorXd> points(4);
     std::vector<double> proportions(4,0.0), distances(4,0.0), iters(4,0.0), backs(4,0.0);
-    int numeroPoint;
+    int numeroPoint, farMin=0, nonMin=0;
 
     points[0]=Eigen::VectorXd::Zero(2); points[1]=Eigen::VectorXd::Zero(2); points[2]=Eigen::VectorXd::Zero(2); points[3]=Eigen::VectorXd::Zero(2);
     points[0](0)=-2; points[0](1)=1; points[1](0)=2; points[1](1)=-1; points[2](0)=0; points[2](1)=-1; points[3](0)=0; points[3](1)=1;
     for(i=0;i<nbTirage;i++)
     {
-        initialisation(nbNeurons,weights,bias,supParameters,distribution);
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);
+        seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
+        if(algo=="LM") {study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);}
+        else if(algo=="LMF") {study = LMF(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax);}
+        else if(algo=="LMUphill") {study = LMUphill(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b);}
+        else if(algo=="LMPerso") {study = LMPerso(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b,epsDiag);}
+        else if(algo=="LMJynian") {study = LMJynian(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,Rlim,RMin,RMax,factorMin,power,alphaChap);}
 
-        currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
-        numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
-        if(numeroPoint<0){std::cout << "On n'est pas tombé sur un minimum" << std::endl;}
-        iters[numeroPoint]+=study["iter"];
-        backs[numeroPoint]+=study["propBack"];
+        if (study["finalGradient"]<eps)
+        {
+            currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
+            numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
+            if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
+            iters[numeroPoint]+=study["iter"];
+            backs[numeroPoint]+=study["propBack"];
+        }
+        else
+        {
+            nonMin++;
+            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+        }
+
     }
     for(i=0;i<4;i++)
     {
@@ -72,9 +86,13 @@ void testPolyTwo(std::string const& distribution, std::vector<double> const& sup
     std::cout << "La proportion de retours en arrière pour arriver à (0,1): " << backs[3] << std::endl;
     std::cout << "" << std::endl;
 
+    std::cout << "Proportion de fois où la condition sur le gradient n'est pas respectée: " << (double)(nonMin)/(double)nbTirage << std::endl;
+    std::cout << "Proportion de fois où on n'est pas assez proche d'un minimum alors que la condition sur le gradient est respectée: " << (double)(farMin)/(double)nbTirage << std::endl;
+
 }
 
-void testPolyThree(std::string const& distribution, std::vector<double> const& supParameters, int nbTirage, double mu, double factor, double const eps, int maxIter, double epsNeight)
+void testPolyThree(std::string const& distribution, std::vector<double> const& supParameters, int nbTirage, std::string const algo, double mu, double factor,double const Rlim, double const RMin,
+ double const RMax, double const epsDiag, int const b, double const factorMin, double const power, double const alphaChap, double const eps, int maxIter, double epsNeight)
 {
     Eigen::MatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -97,25 +115,35 @@ void testPolyThree(std::string const& distribution, std::vector<double> const& s
         N+=nbNeurons[l]*nbNeurons[l+1]; globalIndices[2*l]=N; N+=nbNeurons[l+1]; globalIndices[2*l+1]=N;
     }
 
-    int i;
+    int i; unsigned seed;
     std::map<std::string,double> study;
     Eigen::VectorXd currentPoint(2);
     std::vector<Eigen::VectorXd> points(5);
     std::vector<double> proportions(5,0.0), distances(5,0.0), iters(5,0.0), backs(5,0.0);
-    int numeroPoint;
+    int numeroPoint, farMin=0, nonMin=0;
+
 
     points[0]=Eigen::VectorXd::Zero(2); points[1]=Eigen::VectorXd::Zero(2); points[2]=Eigen::VectorXd::Zero(2); points[3]=Eigen::VectorXd::Zero(2); points[4]=Eigen::VectorXd::Zero(2);
     points[0](0)=0; points[0](1)=-1; points[1](0)=2; points[1](1)=-1; points[2](0)=-2; points[2](1)=1; points[3](0)=-1; points[3](1)=0; points[4](0)=0; points[4](1)=1;
     for(i=0;i<nbTirage;i++)
     {
-        initialisation(nbNeurons,weights,bias,supParameters,distribution);
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);
+        seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
+        if(algo=="LM") {study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);}
+        else if(algo=="LMF") {study = LMF(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax);}
+        else if(algo=="LMUphill") {study = LMUphill(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b);}
+        else if(algo=="LMPerso") {study = LMPerso(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b,epsDiag);}
+        else if(algo=="LMJynian") {study = LMJynian(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,Rlim,RMin,RMax,factorMin,power,alphaChap);}
 
-        currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
-        numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
-        if(numeroPoint<0){std::cout << "On n'est pas tombé sur un minimum" << std::endl;}
-        iters[numeroPoint]+=study["iter"];
-        backs[numeroPoint]+=study["propBack"];
+        if (study["finalGradient"]<eps)
+        {
+            currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
+            numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
+            if(numeroPoint<0){farMin++;}
+            iters[numeroPoint]+=study["iter"];
+            backs[numeroPoint]+=study["propBack"];
+        }
+        else {nonMin++;}
+
     }
     for(i=0;i<5;i++)
     {
@@ -152,9 +180,13 @@ void testPolyThree(std::string const& distribution, std::vector<double> const& s
     std::cout << "La proportion de retours en arrière pour arriver à (0,1): " << backs[4] << std::endl;
     std::cout << "" << std::endl;
 
+    std::cout << "Proportion de fois où la condition sur le gradient n'est pas respectée: " << (double)(nonMin)/(double)nbTirage << std::endl;
+    std::cout << "Proportion de fois où on n'est pas assez proche d'un minimum alors que la condition sur le gradient est respectée: " << (double)(farMin)/(double)nbTirage << std::endl;
+
 }
 
-void testCloche(std::string const& distribution, std::vector<double> const& supParameters, int nbTirage, double mu, double factor, double const eps, int maxIter, double epsNeight)
+void testCloche(std::string const& distribution, std::vector<double> const& supParameters, int nbTirage, std::string const algo, double mu, double factor,double const Rlim, double const RMin,
+ double const RMax, double const epsDiag, int const b, double const factorMin,double const power,double const alphaChap, double const eps, int maxIter, double epsNeight)
 {
     Eigen::MatrixXd X(1,3), Y(1,3);
     X(0,0)=0; X(0,1)=1; X(0,2)=2; Y(0,0)=1; Y(0,1)=0; Y(0,2)=1;
@@ -177,25 +209,37 @@ void testCloche(std::string const& distribution, std::vector<double> const& supP
         N+=nbNeurons[l]*nbNeurons[l+1]; globalIndices[2*l]=N; N+=nbNeurons[l+1]; globalIndices[2*l+1]=N;
     }
 
-    int i;
+    int i; unsigned seed;
     std::map<std::string,double> study;
     Eigen::VectorXd currentPoint(2);
     std::vector<Eigen::VectorXd> points(2);
     std::vector<double> proportions(2,0.0), distances(2,0.0), iters(2,0.0), backs(2,0.0);
-    int numeroPoint, farMin=0;
+    int numeroPoint, nonMin=0, farMin=0;
 
     points[0]=Eigen::VectorXd::Zero(2); points[1]=Eigen::VectorXd::Zero(2);
     points[0](0)=0; points[0](1)=-std::sqrt(2*std::log(3.0/2.0)); points[1](0)=0; points[1](1)=std::sqrt(2*std::log(3.0/2.0));
     for(i=0;i<nbTirage;i++)
     {
-        initialisation(nbNeurons,weights,bias,supParameters,distribution);
-        study = train_entropie(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);
+        seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
+        if(algo=="LM") {study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter);}
+        else if(algo=="LMF") {study = LMF(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax);}
+        else if(algo=="LMUphill") {study = LMUphill(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b);}
+        else if(algo=="LMPerso") {study = LMPerso(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b,epsDiag);}
+        else if(algo=="LMJynian") {study = LMJynian(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,Rlim,RMin,RMax,factorMin,power,alphaChap);}
 
-        currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
-        numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
-        if(numeroPoint<0){std::cout << "On n'est pas tombé sur un minimum" << std::endl; farMin++;}
-        iters[numeroPoint]+=study["iter"];
-        backs[numeroPoint]+=study["propBack"];
+        if (study["finalGradient"]<eps)
+        {
+            currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
+            numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
+            if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
+            iters[numeroPoint]+=study["iter"];
+            backs[numeroPoint]+=study["propBack"];
+        }
+        else
+        {
+            nonMin++;
+            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+        }
     }
     for(i=0;i<4;i++)
     {
@@ -214,7 +258,8 @@ void testCloche(std::string const& distribution, std::vector<double> const& supP
     std::cout << "La proportion de retours en arrière pour arriver à (0,z0): " << backs[1] << std::endl;
     std::cout << "" << std::endl;
 
-    std::cout << "Proportion de fois où on est loin de tous les minimums: " << (double)(farMin)/(double)nbTirage << std::endl;
+    std::cout << "Proportion de fois où la condition sur le gradient n'est pas respectée: " << (double)(nonMin)/(double)nbTirage << std::endl;
+    std::cout << "Proportion de fois où on n'est pas assez proche d'un minimum alors que la condition sur le gradient est respectée: " << (double)(farMin)/(double)nbTirage << std::endl;
 
 
 }
