@@ -12,10 +12,12 @@ void simple(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& wei
     }
 }
 
-void uniform(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& a, double const& b)
+void uniform(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& a, double const& b, unsigned seed)
 {
+
     std::random_device rd;
-    std::mt19937 gen(rd());  //here you could also set a seed
+    std::mt19937 gen(seed);
+    if (seed==NULL){gen.seed(rd());}
     std::uniform_real_distribution<double> distrib(a, b);
 
     int const L = nbNeurons.size()-1;
@@ -32,10 +34,11 @@ void uniform(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& we
     }
 }
 
-void normal(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& mu, double const& sigma)
+void normal(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const& mu, double const& sigma, unsigned seed)
 {
     std::random_device rd;
-    std::mt19937 gen(rd());  //here you could also set a seed
+    std::mt19937 gen(seed);
+    if (seed==NULL){gen.seed(rd());}
     std::normal_distribution<double> distrib(mu, sigma);
 
     int const L = nbNeurons.size()-1;
@@ -51,15 +54,15 @@ void normal(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& wei
     }
 }
 
-void initialisation(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::vector<double> const& supParameters, std::string generator)
+void initialisation(std::vector<int> const& nbNeurons, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::vector<double> const& supParameters, std::string generator, unsigned seed)
 {
     if (generator=="uniform")
     {
-        uniform(nbNeurons,weights,bias,supParameters[0],supParameters[1]);
+        uniform(nbNeurons,weights,bias,supParameters[0],supParameters[1], seed);
     }
     else if (generator=="normal")
     {
-        normal(nbNeurons,weights,bias,supParameters[0],supParameters[1]);
+        normal(nbNeurons,weights,bias,supParameters[0],supParameters[1], seed);
     }
     else
     {
