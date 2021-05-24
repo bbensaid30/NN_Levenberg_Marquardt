@@ -8,6 +8,7 @@ double mu, double factor, double const eps, int const maxIter, bool record, std:
 
     std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
     std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
     assert (factor>1);
@@ -40,8 +41,8 @@ double mu, double factor, double const eps, int const maxIter, bool record, std:
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
@@ -60,8 +61,9 @@ double mu, double factor, double const eps, int const maxIter, bool record, std:
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if (cost<costPrec)
@@ -82,8 +84,6 @@ double mu, double factor, double const eps, int const maxIter, bool record, std:
             endSequence = iter;
             if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
             notBack=0; nbBack++;
-            //std::cout << "La valeur intermédiaire de w : " << weights[0] << std::endl;
-            //std::cout << "La valeur intermédiaire de b : " << bias[0] << std::endl;
             H = Q+mu*I;
             solve(gradient,H,delta);
             update(L,nbNeurons,globalIndices,weights,bias,delta);
@@ -93,6 +93,8 @@ double mu, double factor, double const eps, int const maxIter, bool record, std:
     }
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
+
+    if(record){muFlux << mu << std::endl;}
 
     fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv);
     cost=entropie(Y,As[L],P,nL);
@@ -112,6 +114,7 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
 
     std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
     std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -121,13 +124,14 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
     std::vector<Eigen::MatrixXd> As(L+1); As[0]=X;
     std::vector<Eigen::MatrixXd> slopes(L);
     Eigen::MatrixXd E_inv(nL,P), E_invTranspose(P,nL), E2_inv(nL,P);
-    Eigen::VectorXd gradient(N), Epp(P*nL);
+    Eigen::MatrixXd intermed(1,P*nL);
+    Eigen::VectorXd gradient(N);
     Eigen::MatrixXd Q (N,N);
     Eigen::MatrixXd J(P*nL,N), J2(P*nL,N);
     Eigen::VectorXd delta(N);
     Eigen::MatrixXd H(N,N);
     Eigen::MatrixXd D(N,N);
-    double factor, linearReduction, R, muc, intermed;
+    double factor, linearReduction, R, muc, pas=0.1, deriv0;
     double mu=0;
 
     std::vector<Eigen::MatrixXd> weightsPrec(L);
@@ -154,12 +158,12 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
 
-    while (gradient.norm()>eps && iter<maxIter && delta1.lpNorm<Eigen::Infinity>()>eps*0.0001)
+    while (gradient.norm()>eps && iter<maxIter && delta.lpNorm<Eigen::Infinity>()>eps*0.0001)
     {
         costPrec = cost;
         fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv); E_invTranspose=E_inv.transpose(); E_invTranspose.resize(P*nL,1);
         cost = entropie(Y,As[L],P,nL);
-        linearReduction = costPrec-entropie(Y,As[L]+J*delta,P,nL);
+        intermed=(J*delta).transpose(); intermed.resize(nL,P); linearReduction = costPrec-entropie(Y,As[L]-intermed,P,nL);
         R = (costPrec-cost)/linearReduction;
 
         if(record)
@@ -172,6 +176,7 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
                 weightsFlux << bias[l] << std::endl;
             }
             costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if(R>RMax)
@@ -181,7 +186,8 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
         }
         else if(R<RMin)
         {
-            factor = (cost-costPrec)/(delta.transpose()*gradient)+2;
+            deriv0 = (entropie(Y,As[L]-pas*intermed,P,nL)-costPrec)/pas;
+            factor = -2*(cost-costPrec-deriv0)/deriv0;
             if(factor<2){factor = 2;}
             if(factor>10){factor = 10;}
 
@@ -196,6 +202,136 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
             mu*=factor;
         }
         if (cost<costPrec)
+        {
+            std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
+            notBack++;
+            backwardJacob_entropie(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E_inv,E2_inv,J,J2); Q=J2.transpose()*J2; gradient=J.transpose()*E_invTranspose;
+        }
+        else
+        {
+            std::copy(weightsPrec.begin(),weightsPrec.end(),weights.begin()); std::copy(biasPrec.begin(),biasPrec.end(),bias.begin());
+            endSequence = iter;
+            if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
+            notBack=0; nbBack++;
+        }
+
+        H = Q+mu*D;
+        solve(gradient,H,delta);
+        update(L,nbNeurons,globalIndices,weights,bias,delta);
+
+        iter++;
+    }
+    endSequence = iter;
+    if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
+
+    if(record){muFlux << mu << std::endl;}
+
+    fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv);
+    cost = entropie(Y,As[L],P,nL);
+
+    std::map<std::string,double> study;
+    study["iter"]=(double)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(double)(endSequenceMax-notBackMax);
+    study["endSequenceMax"]=(double)endSequenceMax; study["startSequenceFinal"]=(double)(iter-notBack); study["propBack"]=(double)nbBack/(double)iter;
+
+    return study;
+
+}
+
+std::map<std::string,double> LMUphill_entropie(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations,std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double const eps, int const maxIter,
+double const RMin, double const RMax, int const b, bool const record, std::string fileExtension)
+{
+
+    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_"+fileExtension+".csv").c_str());
+    if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
+
+
+    int N=globalIndices[2*L-1], P=X.cols(), nL=nbNeurons[L], iter=1, l;
+    int endSequence=0, endSequenceMax=0, notBack=1, notBackMax=0, nbBack=0;
+
+    std::vector<Eigen::MatrixXd> As(L+1); As[0]=X;
+    std::vector<Eigen::MatrixXd> slopes(L);
+    Eigen::MatrixXd E_inv(nL,P), E_invTranspose(P,nL), E2_inv(nL,P);
+    Eigen::MatrixXd intermed(1,P*nL);
+    Eigen::VectorXd gradient(N);
+    Eigen::MatrixXd Q (N,N);
+    Eigen::MatrixXd J(P*nL,N), J2(P*nL,N);
+    Eigen::VectorXd delta(N), deltaPrec(N);
+    Eigen::MatrixXd H(N,N);
+    Eigen::MatrixXd D(N,N);
+    double factor, linearReduction, R, muc, pas=0.1, deriv0;
+    double mu=0;
+
+    std::vector<Eigen::MatrixXd> weightsPrec(L);
+    std::vector<Eigen::VectorXd> biasPrec(L);
+
+    std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
+    fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv); E_invTranspose=E_inv.transpose(); E_invTranspose.resize(P*nL,1);
+    double cost = entropie(Y,As[L],P,nL), costPrec; double costMin=cost;
+    backwardJacob_entropie(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E_inv,E2_inv,J,J2); Q=J2.transpose()*J2; gradient=J.transpose()*E_invTranspose;
+    scalingFletcher(Q,D,N);
+    H = Q+mu*D;
+
+    if(record)
+    {
+        for(l=0;l<L;l++)
+        {
+            weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+            weightsFlux << weights[l] << std::endl;
+            weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+            weightsFlux << bias[l] << std::endl;
+        }
+        costFlux << cost << std::endl;
+    }
+    solve(gradient,H,delta);
+    update(L,nbNeurons,globalIndices,weights,bias,delta);
+
+    while (gradient.norm()>eps && iter<maxIter && delta.lpNorm<Eigen::Infinity>()>eps*0.0001)
+    {
+        costPrec = cost;
+        fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv); E_invTranspose=E_inv.transpose(); E_invTranspose.resize(P*nL,1);
+        cost = entropie(Y,As[L],P,nL);
+        intermed=(J*delta).transpose(); intermed.resize(nL,P); linearReduction = costPrec-entropie(Y,As[L]-intermed,P,nL);
+        R = (costPrec-cost)/linearReduction;
+
+        if(record)
+        {
+            for(l=0;l<L;l++)
+            {
+                weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+                weightsFlux << weights[l] << std::endl;
+                weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+                weightsFlux << bias[l] << std::endl;
+            }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
+        }
+
+        if(R>RMax)
+        {
+            mu/=2;
+            if(mu<muc){mu=0;}
+        }
+        else if(R<RMin)
+        {
+            deriv0 = (entropie(Y,As[L]-pas*intermed,P,nL)-costPrec)/pas;
+            factor = -2*(cost-costPrec-deriv0)/deriv0;
+            if(factor<2){factor = 2;}
+            if(factor>10){factor = 10;}
+
+            if(mu<std::pow(10,-16))
+            {
+                //Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(Q);
+                //muc = 1.0/(es.eigenvalues().minCoeff());
+                muc = 1/(Q.inverse().diagonal().cwiseAbs().maxCoeff());
+                mu=muc;
+                factor/=2;
+            }
+            mu*=factor;
+        }
+        if (cost<costPrec  || (iter>1 && std::pow(1-cosVector(deltaPrec,delta),b)*cost<costMin))
         {
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             notBack++;
@@ -219,6 +355,8 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv);
     cost = entropie(Y,As[L],P,nL);
 
@@ -229,4 +367,131 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
     return study;
 
 }
+
+
+std::map<std::string,double> LMNielson_entropie(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias,
+double const eps, int const maxIter, double const tau, double const beta, double const gamma, int const p, double const epsDiag,
+bool const record, std::string const fileExtension)
+{
+    std::ofstream weightsFlux(("Record/weights_LMNielson_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMNielson_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMNielson_"+fileExtension+".csv").c_str());
+    if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
+
+
+    int N=globalIndices[2*L-1], P=X.cols(), iter=1, nL=nbNeurons[L], l;
+    int endSequence=0, endSequenceMax=0, notBack=1, notBackMax=0, nbBack=0;
+
+    std::vector<Eigen::MatrixXd> As(L+1); As[0]=X;
+    std::vector<Eigen::MatrixXd> slopes(L);
+    Eigen::MatrixXd E_inv(nL,P), E_invTranspose(P,nL), E2_inv(nL,P);
+    Eigen::MatrixXd intermed(1,P*nL);
+    Eigen::VectorXd gradient(N);
+    Eigen::MatrixXd Q (N,N);
+    Eigen::MatrixXd J(P*nL,N), J2(P*nL,N);
+    Eigen::VectorXd delta(N), deltaPrec(N);
+    Eigen::MatrixXd H(N,N);
+    Eigen::MatrixXd I  = Eigen::MatrixXd::Identity(N,N);
+    double mu, linearReduction, R, nu=beta;
+
+    std::vector<Eigen::MatrixXd> weightsPrec(L);
+    std::vector<Eigen::VectorXd> biasPrec(L);
+
+    std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
+    fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv); E_invTranspose=E_inv.transpose(); E_invTranspose.resize(P*nL,1);
+    double cost = entropie(Y,As[L],P,nL), costPrec; double costMin=cost;
+    backwardJacob_entropie(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E_inv,E2_inv,J,J2); Q=J2.transpose()*J2; gradient=J.transpose()*E_invTranspose;
+    mu=tau*Q.diagonal().maxCoeff();
+    H = Q+mu*I;
+
+    if(record)
+    {
+        for(l=0;l<L;l++)
+        {
+            weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+            weightsFlux << weights[l] << std::endl;
+            weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+            weightsFlux << bias[l] << std::endl;
+        }
+        costFlux << cost << std::endl;
+    }
+    solve(gradient,H,delta);
+    update(L,nbNeurons,globalIndices,weights,bias,delta);
+
+    while (gradient.norm()>eps && iter<maxIter)
+    {
+        costPrec = cost;
+        fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv); E_invTranspose=E_inv.transpose(); E_invTranspose.resize(P*nL,1);
+        cost = entropie(Y,As[L],P,nL);
+        intermed=(J*delta).transpose(); intermed.resize(nL,P); linearReduction = costPrec-entropie(Y,As[L]-intermed,P,nL);
+        R = (costPrec-cost)/linearReduction;
+
+        if(record)
+        {
+            for(l=0;l<L;l++)
+            {
+                weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+                weightsFlux << weights[l] << std::endl;
+                weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+                weightsFlux << bias[l] << std::endl;
+            }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
+        }
+
+        if (R>0)
+        {
+            std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
+            notBack++;
+            mu*=std::max(1.0/gamma,1-(beta-1)*std::pow(2*R-1,p));
+            backwardJacob_entropie(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E_inv,E2_inv,J,J2); Q=J2.transpose()*J2; gradient=J.transpose()*E_invTranspose;
+        }
+        else
+        {
+            std::copy(weightsPrec.begin(),weightsPrec.end(),weights.begin()); std::copy(biasPrec.begin(),biasPrec.end(),bias.begin());
+            endSequence = iter;
+            if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
+            notBack=0; nbBack++;
+            mu*=nu; nu*=2;
+        }
+
+        H = Q+mu*I;
+        solve(gradient,H,delta);
+        update(L,nbNeurons,globalIndices,weights,bias,delta);
+
+        iter++;
+    }
+    endSequence = iter;
+    if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
+
+    if(record){muFlux << mu << std::endl;}
+
+    fforward_entropie(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E_inv,E2_inv);
+    cost = entropie(Y,As[L],P,nL);
+
+    std::map<std::string,double> study;
+    study["iter"]=(double)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(double)(endSequenceMax-notBackMax);
+    study["endSequenceMax"]=(double)endSequenceMax; study["startSequenceFinal"]=(double)(iter-notBack); study["propBack"]=(double)nbBack/(double)iter;
+
+    return study;
+}
+
+std::map<std::string,double> train_entropie(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations,std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::string algo, double const eps, int const maxIter,
+double mu, double const factor, double const RMin, double const RMax, int const b, double const epsDiag, double const tau, double const beta, double const gamma, int const p,
+double const sigma, bool const record, std::string const fileExtension)
+{
+    std::map<std::string,double> study;
+    if(algo=="LM"){study = LM_entropie(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter,record,fileExtension);}
+    else if(algo=="LMF"){study = LMF_entropie(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,record,fileExtension);}
+    else if(algo=="LMUphill"){study = LMUphill_entropie(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b,record,fileExtension);}
+    else if(algo=="LMNielson"){study = LMNielson_entropie(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,tau,beta,gamma,p,epsDiag,record,fileExtension);}
+
+    return study;
+}
+
+
+
+
 

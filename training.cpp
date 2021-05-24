@@ -1,12 +1,13 @@
 #include "training.h"
 
 std::map<std::string,double> LM(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<std::string> const& activations,
-std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu, double factor, double const eps, int const maxIter, bool const record, std::string fileExtension)
+std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, double mu, double const factor, double const eps, int const maxIter, bool const record, std::string fileExtension)
 {
 
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LM_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LM_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LM_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
     assert (factor>1);
@@ -39,8 +40,8 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
@@ -59,8 +60,9 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if (cost<costPrec)
@@ -89,6 +91,8 @@ std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, doubl
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -106,8 +110,9 @@ double mu, double factor, double const eps, int const maxIter, std::string const
 {
 
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMBall_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMBall_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMBall_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
     assert (factor>1);
@@ -140,8 +145,8 @@ double mu, double factor, double const eps, int const maxIter, std::string const
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
@@ -168,8 +173,9 @@ double mu, double factor, double const eps, int const maxIter, std::string const
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
        if(cost>costPrec || dis>radiusBall)
@@ -198,6 +204,8 @@ double mu, double factor, double const eps, int const maxIter, std::string const
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -214,8 +222,9 @@ std::vector<std::string> const& activations,std::vector<Eigen::MatrixXd>& weight
 double const RMin, double const RMax, bool const record, std::string fileExtension)
 {
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMF_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMF_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMF_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -252,8 +261,8 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
@@ -265,7 +274,7 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
         cost = 0.5*E.squaredNorm();
         intermed = delta.transpose()*gradient;
         linearReduction = -2*intermed-delta.transpose()*Q*delta;
-        R = (costPrec-cost)/linearReduction;
+        R = 2*(costPrec-cost)/linearReduction;
 
         if(record)
         {
@@ -275,8 +284,9 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+             costFlux << cost << std::endl;
+             muFlux << mu << std::endl;
         }
 
         if(R>RMax)
@@ -286,7 +296,7 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
         }
         else if(R<RMin)
         {
-            factor = (cost-costPrec)/(intermed)+2;
+            factor = 2*(costPrec-cost)/(intermed)+2;
             if(factor<2){factor = 2;}
             if(factor>10){factor = 10;}
 
@@ -325,6 +335,8 @@ double const RMin, double const RMax, bool const record, std::string fileExtensi
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -341,8 +353,9 @@ std::map<std::string,double> LMMore(Eigen::MatrixXd const& X, Eigen::MatrixXd co
 std::vector<std::string> const& activations, std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias,
 double const eps, int const maxIter, double const sigma, bool const record, std::string const fileExtension)
 {
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMMore_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMMore_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMMore_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -406,8 +419,8 @@ double const eps, int const maxIter, double const sigma, bool const record, std:
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     update(L,nbNeurons,globalIndices,weights,bias,delta);
 
@@ -417,7 +430,7 @@ double const eps, int const maxIter, double const sigma, bool const record, std:
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
         cost = 0.5*E.squaredNorm();
         intermed = delta.transpose()*gradient; linearReduction = -2*intermed-delta.transpose()*Q*delta;
-        R = (costPrec-cost)/linearReduction;
+        R = 2*(costPrec-cost)/linearReduction;
 
         if(record)
         {
@@ -427,8 +440,9 @@ double const eps, int const maxIter, double const sigma, bool const record, std:
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if (R<0.0001)
@@ -492,6 +506,8 @@ double const eps, int const maxIter, double const sigma, bool const record, std:
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -507,8 +523,9 @@ std::vector<std::string> const& activations, std::vector<Eigen::MatrixXd>& weigh
 double const eps, int const maxIter, double const tau, double const beta, double const gamma, int const p, double const epsDiag,
 bool const record, std::string const fileExtension)
 {
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMNielson_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMNielson_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMNielson_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -543,8 +560,8 @@ bool const record, std::string const fileExtension)
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
@@ -556,7 +573,7 @@ bool const record, std::string const fileExtension)
         cost = 0.5*E.squaredNorm();
         intermed = delta.transpose()*gradient;
         linearReduction = -2*intermed-delta.transpose()*Q*delta;
-        R = (costPrec-cost)/linearReduction;
+        R = 2*(costPrec-cost)/linearReduction;
 
         if(record)
         {
@@ -566,8 +583,9 @@ bool const record, std::string const fileExtension)
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if (R>0)
@@ -596,6 +614,8 @@ bool const record, std::string const fileExtension)
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -613,8 +633,9 @@ double const RMin, double const RMax, int const b, bool const record, std::strin
 
     assert(b==1 || b==2);
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMUphill_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMUphill_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMUphill_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -650,20 +671,20 @@ double const RMin, double const RMax, int const b, bool const record, std::strin
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
 
-    while (gradient.norm()>eps && iter<maxIter && delta.lpNorm<Eigen::Infinity>()>eps*0.01)
+    while (gradient.norm()>eps && iter<maxIter && delta.lpNorm<Eigen::Infinity>()>eps*0.0001)
     {
         costPrec = cost;
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
         cost = 0.5*E.squaredNorm();
         intermed = delta.transpose()*gradient;
         linearReduction = -2*intermed-delta.transpose()*Q*delta;
-        R = (costPrec-cost)/linearReduction;
+        R = 2*(costPrec-cost)/linearReduction;
 
         if(record)
         {
@@ -673,8 +694,9 @@ double const RMin, double const RMax, int const b, bool const record, std::strin
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if(R>RMax)
@@ -684,7 +706,7 @@ double const RMin, double const RMax, int const b, bool const record, std::strin
         }
         else if(R<RMin)
         {
-            factor = (cost-costPrec)/(intermed)+2;
+            factor = 2*(costPrec-cost)/(intermed)+2;
             if(factor<2){factor = 2;}
             if(factor>10){factor = 10;}
 
@@ -723,6 +745,8 @@ double const RMin, double const RMax, int const b, bool const record, std::strin
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -741,8 +765,9 @@ double const RMin, double const RMax, int const b, double const epsDiag, bool co
 
     assert(b==1 || b==2);
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMPerso_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMPerso_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMPerso_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -778,20 +803,20 @@ double const RMin, double const RMax, int const b, double const epsDiag, bool co
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta);
     update(L,nbNeurons,globalIndices,weights,bias,delta);
 
-    while (gradient.norm()>eps && iter<maxIter && delta.lpNorm<Eigen::Infinity>()>eps*0.01)
+    while (gradient.norm()>eps && iter<maxIter && delta.lpNorm<Eigen::Infinity>()>eps*0.0001)
     {
         costPrec = cost;
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
         cost = 0.5*E.squaredNorm();
         intermed = delta.transpose()*gradient;
         linearReduction = -2*intermed-delta.transpose()*Q*delta;
-        R = (costPrec-cost)/linearReduction;
+        R = 2*(costPrec-cost)/linearReduction;
 
         if(record)
         {
@@ -801,8 +826,9 @@ double const RMin, double const RMax, int const b, double const epsDiag, bool co
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if(R>RMax)
@@ -812,7 +838,7 @@ double const RMin, double const RMax, int const b, double const epsDiag, bool co
         }
         else if(R<RMin)
         {
-            factor = (cost-costPrec)/(intermed)+2;
+            factor = 2*(costPrec-cost)/(intermed)+2;
             if(factor<2){factor = 2;}
             if(factor>10){factor = 10;}
 
@@ -852,6 +878,8 @@ double const RMin, double const RMax, int const b, double const epsDiag, bool co
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -871,8 +899,9 @@ double const RMin, double const RMax, int const b, double const alpha, double co
 
     assert(b==1 || b==2);
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMGeodesic_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMGeodesic_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMGeodesic_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -909,13 +938,13 @@ double const RMin, double const RMax, int const b, double const alpha, double co
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
     solve(gradient,H,delta1);
     update(L,nbNeurons,globalIndices,weights,bias,delta1);
 
-    while (gradient.norm()>eps && iter<maxIter && delta1.lpNorm<Eigen::Infinity>()>eps*0.01)
+    while (gradient.norm()>eps && iter<maxIter && delta1.lpNorm<Eigen::Infinity>()>eps*0.0001)
     {
         costPrec = cost;
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E); ETranspose=E.transpose(); ETranspose.resize(P*nL,1);
@@ -925,7 +954,7 @@ double const RMin, double const RMax, int const b, double const alpha, double co
         cost = 0.5*E.squaredNorm();
         intermed = delta1.transpose()*gradient;
         linearReduction = -2*intermed-delta1.transpose()*Q*delta1;
-        R = (costPrec-cost)/linearReduction;
+        R = 2*(costPrec-cost)/linearReduction;
 
         if(record)
         {
@@ -935,8 +964,9 @@ double const RMin, double const RMax, int const b, double const alpha, double co
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if(R>RMax)
@@ -946,7 +976,7 @@ double const RMin, double const RMax, int const b, double const alpha, double co
         }
         else if(R<RMin)
         {
-            factor = (cost-costPrec)/(intermed)+2;
+            factor = 2*(costPrec-cost)/(intermed)+2;
             if(factor<2){factor = 2;}
             if(factor>10){factor = 10;}
 
@@ -984,6 +1014,8 @@ double const RMin, double const RMax, int const b, double const alpha, double co
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
@@ -1002,8 +1034,9 @@ bool const record, std::string const fileExtension)
 {
     assert(0<power && power<4);
 
-    std::ofstream weightsFlux(("Record/weights_"+fileExtension+".csv").c_str());
-    std::ofstream costFlux(("Record/cost_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_LMJynian_"+fileExtension+".csv").c_str());
+    std::ofstream costFlux(("Record/cost_LMJynian_"+fileExtension+".csv").c_str());
+    std::ofstream muFlux(("Record/mu_LMJynian_"+fileExtension+".csv").c_str());
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
@@ -1037,8 +1070,8 @@ bool const record, std::string const fileExtension)
             weightsFlux << weights[l] << std::endl;
             weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
             weightsFlux << bias[l] << std::endl;
-            costFlux << cost << std::endl;
         }
+        costFlux << cost << std::endl;
     }
 
     solve(gradient,H,delta);
@@ -1050,7 +1083,7 @@ bool const record, std::string const fileExtension)
     else {alpha=(2*alphaChap)*deltaChap.transpose()*H*deltaChap;}
     update(L,nbNeurons,globalIndices,weights,bias,alpha*deltaChap);
 
-    while (gradient.norm()>eps && iter<maxIter && (delta+alpha*deltaChap).lpNorm<Eigen::Infinity>()>0.01*eps)
+    while (gradient.norm()>eps && iter<maxIter && (delta+alpha*deltaChap).lpNorm<Eigen::Infinity>()>0.0001*eps)
     {
         costPrec = cost;
         fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E); ETranspose=E.transpose(); ETranspose.resize(P*nL,1);
@@ -1067,13 +1100,14 @@ bool const record, std::string const fileExtension)
                 weightsFlux << weights[l] << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
                 weightsFlux << bias[l] << std::endl;
-                costFlux << cost << std::endl;
             }
+            costFlux << cost << std::endl;
+            muFlux << mu << std::endl;
         }
 
         if(R<RMin){factor*=4;}
         else if(R>RMax){factor=std::max(factorMin,factor/4.0);}
-        mu=factor*std::pow(cost,power/2.0);
+        mu=factor*std::pow(2*cost,power/2.0);
 
         if (R>Rlim)
         {
@@ -1104,12 +1138,34 @@ bool const record, std::string const fileExtension)
     endSequence = iter;
     if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
 
+    if(record){muFlux << mu << std::endl;}
+
     fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes,E);
     cost = 0.5*E.squaredNorm();
 
     std::map<std::string,double> study;
     study["iter"]=(double)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(double)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(double)endSequenceMax; study["startSequenceFinal"]=(double)(iter-notBack); study["propBack"]=(double)nbBack/(double)iter;
+
+    return study;
+}
+
+std::map<std::string,double> train(Eigen::MatrixXd const& X, Eigen::MatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations,std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd>& bias, std::string const algo, double const eps, int const maxIter,
+double mu, double const factor, double const RMin, double const RMax, int const b, double const alpha, double const pas, double const Rlim,
+double const factorMin, double const power, double const alphaChap, double const epsDiag, double const tau, double const beta,
+double const gamma, int const p, double const sigma, std::string const norm, double const radiusBall, bool const record, std::string const fileExtension)
+{
+    std::map<std::string,double> study;
+
+    if(algo=="LM"){study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter,record,fileExtension);}
+    else if(algo=="LMF"){study = LMF(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,record,fileExtension);}
+    else if(algo=="LMUphill"){study = LMUphill(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b,record,fileExtension);}
+    else if(algo=="LMGeodesic"){study = LMGeodesic(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,RMin,RMax,b,alpha,pas,record,fileExtension);}
+    else if(algo=="LMJynian"){study = LMJynian(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,Rlim,RMin,RMax,factorMin,power,alphaChap,record,fileExtension);}
+    else if(algo=="LMMore"){study = LMMore(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,sigma,record,fileExtension);}
+    else if(algo=="LMNielson"){study = LMNielson(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,eps,maxIter,tau,beta,gamma,p,epsDiag,record,fileExtension);}
+    else if(algo=="LMBall"){study = LMBall(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,mu,factor,eps,maxIter,norm,radiusBall,record,fileExtension);}
 
     return study;
 }
