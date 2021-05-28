@@ -11,6 +11,16 @@ void sigmoid(Eigen::MatrixXd& Z, Eigen::MatrixXd& S)
     S = Z.array()*(1-Z.array());
 }
 
+void softmax(Eigen::MatrixXd& Z, Eigen::MatrixXd& S)
+{
+    Z = Z.array().exp();
+    Eigen::VectorXd sumExp = Z.colwise().sum().cwiseInverse();
+
+    Z = Z * sumExp.asDiagonal();
+    S = Z.array()*(1-Z.array());
+
+}
+
 void tanh(Eigen::MatrixXd& Z, Eigen::MatrixXd& S)
 {
     Z = Z.array().tanh();
@@ -43,6 +53,11 @@ void activation(std::string nameActivation, Eigen::MatrixXd& Z, Eigen::MatrixXd&
     {
         reLU(Z,S);
     }
+    else if(nameActivation == "softmax")
+    {
+        softmax(Z,S);
+    }
+
     else if(nameActivation == "polyTwo")
     {
         polyTwo(Z,S);
