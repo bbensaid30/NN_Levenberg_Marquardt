@@ -20,6 +20,37 @@ int proportion(Eigen::VectorXd const& currentPoint, std::vector<Eigen::VectorXd>
     return -1;
 }
 
+double mean(std::vector<double> const& values)
+{
+    double sum = std::accumulate(values.begin(), values.end(), 0.0);
+    double mean = sum / values.size();
+
+    return mean;
+}
+
+double sd(std::vector<double> const& values, double const& moy)
+{
+    double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
+    double stdev = std::sqrt(sq_sum / values.size() - std::pow(moy,2));
+
+    return stdev;
+}
+
+double median(std::vector<double>& values)
+{
+        int const taille = values.size();
+
+        if (taille == 0)
+                throw std::domain_error("median of an empty vector");
+
+        std::sort(values.begin(), values.end());
+
+        int const mid = taille/2;
+
+        return taille % 2 == 0 ? (values[mid] + values[mid-1]) / 2.0 : values[mid];
+}
+
+
 double distance(std::vector<Eigen::MatrixXd> const& weightsPrec, std::vector<Eigen::VectorXd> const& biasPrec,
 std::vector<Eigen::MatrixXd> const& weights, std::vector<Eigen::VectorXd> const& bias, std::string norm)
 {
@@ -57,48 +88,94 @@ double cosVector(Eigen::VectorXd const& v1, Eigen::VectorXd const& v2)
     return result/=v1.norm()*v2.norm();
 }
 
+void convexCombination(std::vector<Eigen::MatrixXd> const& weights1, std::vector<Eigen::VectorXd> const& bias1, std::vector<Eigen::MatrixXd> const& weights2,
+std::vector<Eigen::VectorXd> const& bias2, std::vector<Eigen::MatrixXd>& weightsInter, std::vector<Eigen::VectorXd>& biasInter, int const& L, double const lambda)
+{
+    for(int l=0;l<L;l++)
+    {
+        weightsInter[l]=lambda*weights1[l]+(1-lambda)*weights2[l];
+        biasInter[l]=lambda*bias1[l]+(1-lambda)*bias2[l];
+    }
+}
+
 void tabToVector(std::vector<Eigen::MatrixXd>& weights, std::vector<Eigen::VectorXd> const& bias, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 Eigen::VectorXd& point)
 {
     int l, jump;
 
-    jump=nbNeurons[L]*nbNeurons[L-1];
-    weights[L].resize(jump,1);
-    point.segment(globalIndices[2*(L-1)]-jump,jump)=weights[L-1];
-    jump=nbNeurons[L];
-    point.segment(globalIndices[2*(L-1)+1]-jump,jump)=bias[L-1];
-    for (l=L-1;l>0;l--)
+    for (l=0;l<L;l++)
     {
-        jump=nbNeurons[l]*nbNeurons[l-1];
-        weights[l-1].resize(jump,1);
-        point.segment(globalIndices[2*(l-1)]-jump,jump)=weights[l-1];
-        jump=nbNeurons[l];
-        point.segment(globalIndices[2*(l-1)+1]-jump,jump)=bias[l-1];
+        jump=nbNeurons[l]*nbNeurons[l+1];
+        weights[l].resize(jump,1);
+        point.segment(globalIndices[2*l]-jump,jump)=weights[l];
+        jump=nbNeurons[l+1];
+        point.segment(globalIndices[2*l+1]-jump,jump)=bias[l];
 
-        weights[l-1].resize(nbNeurons[l],nbNeurons[l-1]);
+        weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
     }
 }
 
-bool testPoint(Eigen::VectorXd const& point, std::vector<Eigen::VectorXd>& points, double const epsClose)
+void standardization(Eigen::MatrixXd& X)
 {
-    int const taille = points.size();
-    int i=0;
+    int const dim=X.rows(), P=X.cols();
+    Eigen::VectorXd mean(dim), standardDeviation(dim);
 
-    if (taille==0)
+    mean = X.rowwise().mean();
+    for(int i=0; i<dim;i++)
     {
-        points.push_back(point);
-        return true;
+        X.array().row(i) -= mean(i);
     }
 
-    while ((points[i]-point).norm()>epsClose){i++;}
-    if(i==taille)
+    standardDeviation = X.rowwise().squaredNorm()/((double)(P));
+    standardDeviation.cwiseSqrt();
+
+    for(int i=0; i<dim;i++)
     {
-        points.push_back(point);
-        return true;
+        X.row(i) /= standardDeviation(i);
     }
-    else{return false;}
 }
 
+int nbLines(std::ifstream& flux) {
+    std::string s;
 
+    unsigned int nb = 0;
+    while(std::getline(flux,s)) {++nb;}
 
+    return nb;
 
+}
+
+void readMatrix(std::ifstream& flux, Eigen::MatrixXd& result, int const& nbRows, int const& nbCols)
+{
+    int cols, rows;
+    std::string line;
+
+    for(rows=0; rows<nbRows; rows++)
+    {
+        std::getline(flux, line);
+
+        std::stringstream stream(line);
+        cols=0;
+        while(! stream.eof())
+        {
+            stream >> result(rows,cols);
+            cols++;
+        }
+    }
+
+}
+
+void readVector(std::ifstream& flux, Eigen::VectorXd& result, int const& nbRows)
+{
+    std::string line;
+
+    for(int i=0; i<nbRows; i++)
+    {
+        std::getline(flux, line);
+
+        std::stringstream stream(line);
+        stream >> result(i);
+
+    }
+
+}
