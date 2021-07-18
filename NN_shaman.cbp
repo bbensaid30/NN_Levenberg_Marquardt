@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="NN_shaman" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/NN_shaman" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/NN_shaman" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="activations.cpp" />
+		<Unit filename="activations.h" />
+		<Unit filename="addStrategy.cpp" />
+		<Unit filename="addStrategy.h" />
+		<Unit filename="data.cpp" />
+		<Unit filename="data.h" />
+		<Unit filename="eigenExtension.cpp" />
+		<Unit filename="eigenExtension.h" />
+		<Unit filename="init.cpp" />
+		<Unit filename="init.h" />
+		<Unit filename="main.cpp" />
+		<Unit filename="propagation.cpp" />
+		<Unit filename="propagation.h" />
+		<Unit filename="scaling.cpp" />
+		<Unit filename="scaling.h" />
+		<Unit filename="study_base.cpp" />
+		<Unit filename="study_base.h" />
+		<Unit filename="study_graphics.cpp" />
+		<Unit filename="study_graphics.h" />
+		<Unit filename="test.cpp" />
+		<Unit filename="test.h" />
+		<Unit filename="training.cpp" />
+		<Unit filename="training.h" />
+		<Unit filename="training_entropie.cpp" />
+		<Unit filename="training_entropie.h" />
+		<Unit filename="utilities.cpp" />
+		<Unit filename="utilities.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>

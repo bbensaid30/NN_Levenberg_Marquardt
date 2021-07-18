@@ -1,0 +1,205 @@
+# depslib dependency file v1.0
+1626604681 source:/home/bensaid/Documents/Anabase/NN_shaman/main.cpp
+	<iostream>
+	<string>
+	<fstream>
+	<iterator>
+	<vector>
+	<random>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	<EigenRand/EigenRand>
+	"test.h"
+	"propagation.h"
+	"init.h"
+	"data.h"
+	"training.h"
+	"study_base.h"
+	"study_graphics.h"
+	"utilities.h"
+
+1625742065 source:/home/bensaid/Documents/Anabase/NN_shaman/activations.cpp
+	"activations.h"
+
+1625492585 /home/bensaid/Documents/Anabase/NN_shaman/activations.h
+	<string>
+	<cmath>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+
+1626092442 source:/home/bensaid/Documents/Anabase/NN_shaman/addStrategy.cpp
+	"addStrategy.h"
+
+1625508642 /home/bensaid/Documents/Anabase/NN_shaman/addStrategy.h
+	<iostream>
+	<fstream>
+	<vector>
+	<map>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"propagation.h"
+	"utilities.h"
+
+1626441201 /home/bensaid/Documents/Anabase/NN_shaman/propagation.h
+	<iostream>
+	<string>
+	<vector>
+	<Eigen/Dense>
+	<Eigen/IterativeLinearSolvers>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"activations.h"
+
+1625557990 /home/bensaid/Documents/Anabase/NN_shaman/utilities.h
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<map>
+	<numeric>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"eigenExtension.h"
+
+1625742318 source:/home/bensaid/Documents/Anabase/NN_shaman/data.cpp
+	"data.h"
+
+1625519753 /home/bensaid/Documents/Anabase/NN_shaman/data.h
+	<iostream>
+	<fstream>
+	<cstdio>
+	<cstdlib>
+	<sstream>
+	<string>
+	<vector>
+	<map>
+	<cmath>
+	<random>
+	<ctime>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	<EigenRand/EigenRand>
+
+1626442014 source:/home/bensaid/Documents/Anabase/NN_shaman/propagation.cpp
+	"propagation.h"
+
+1626023319 source:/home/bensaid/Documents/Anabase/NN_shaman/scaling.cpp
+	"scaling.h"
+
+1625500058 /home/bensaid/Documents/Anabase/NN_shaman/scaling.h
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+
+1626023387 source:/home/bensaid/Documents/Anabase/NN_shaman/study_graphics.cpp
+	"study_graphics.h"
+
+1625762483 /home/bensaid/Documents/Anabase/NN_shaman/study_graphics.h
+	<vector>
+	<iostream>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"matplotlibcpp.h"
+	"study_base.h"
+
+1625558916 /home/bensaid/Documents/Anabase/NN_shaman/study_base.h
+	<iostream>
+	<fstream>
+	<vector>
+	<map>
+	<sstream>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"init.h"
+	"propagation.h"
+	"training.h"
+	"training_entropie.h"
+	"utilities.h"
+	"addStrategy.h"
+
+1625557368 /home/bensaid/Documents/Anabase/NN_shaman/init.h
+	<iostream>
+	<string>
+	<vector>
+	<random>
+	<ctime>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	<EigenRand/EigenRand>
+	"eigenExtension.h"
+
+1626558555 /home/bensaid/Documents/Anabase/NN_shaman/training.h
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<map>
+	<cmath>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"propagation.h"
+	"utilities.h"
+	"eigenExtension.h"
+	"scaling.h"
+
+1625558713 /home/bensaid/Documents/Anabase/NN_shaman/training_entropie.h
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<map>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"propagation.h"
+	"scaling.h"
+	"utilities.h"
+
+1626613434 source:/home/bensaid/Documents/Anabase/NN_shaman/study_base.cpp
+	"study_base.h"
+
+1626023545 source:/home/bensaid/Documents/Anabase/NN_shaman/test.cpp
+	"test.h"
+
+1625558916 /home/bensaid/Documents/Anabase/NN_shaman/test.h
+	<iostream>
+	<vector>
+	<map>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+	"init.h"
+	"training.h"
+	"training_entropie.h"
+	"utilities.h"
+
+1626538389 /home/bensaid/Documents/Anabase/NN_shaman/eigenExtension.h
+	<cmath>
+	<Eigen/Dense>
+	"shaman.h"
+	"shaman/helpers/shaman_eigen.h"
+
+1626597213 source:/home/bensaid/Documents/Anabase/NN_shaman/eigenExtension.cpp
+	"eigenExtension.h"
+
+1626514014 source:/home/bensaid/Documents/Anabase/NN_shaman/init.cpp
+	"init.h"
+
+1626023648 source:/home/bensaid/Documents/Anabase/NN_shaman/utilities.cpp
+	"utilities.h"
+
+1626598164 source:/home/bensaid/Documents/Anabase/NN_shaman/training_entropie.cpp
+	"training_entropie.h"
+
+1626598335 source:/home/bensaid/Documents/Anabase/NN_shaman/training.cpp
+	"training.h"
+

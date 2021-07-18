@@ -46,7 +46,7 @@ int main()
 //    nbNeurons[L]=1;
 //    if(L>=2){activations[L-1]="linear";}
     nbNeurons[0]=1;
-    nbNeurons[1]=2;
+    nbNeurons[1]=5;
     nbNeurons[2]=1;
     activations[0]="reLU";
     activations[1]="linear";
@@ -74,7 +74,7 @@ int main()
 
     std::string const folder="sineWave/P=40|L=2";
     std::string const activationString="reLUl";
-    std::string const fileExtension = "2-1";
+    std::string const fileExtension = "5-1";
     minsRecord(dataTrainTest,L,nbNeurons,globalIndices,activations,supParameters,generator,algo,nbTirages,eps,maxIter,mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,
     tau,beta,gamma,p,sigma,norm,radiusBall,tirageMin,tirageDisplay,folder,fileExtension);
     //denombrementMinsPost(dataTrainTest,L,nbNeurons,globalIndices,activations,algo,epsClose,nbDichotomie,eps,tirageDisplay,strategy,flat,folder,fileExtension);
