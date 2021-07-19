@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <cmath>
 
 #include <Eigen/Dense>
 #include "shaman.h"

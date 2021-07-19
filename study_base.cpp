@@ -56,9 +56,9 @@ Sdouble const& flat)
             costMinBoth=(costMinTraining+testingError)/2.0; indiceMinBoth=0;
         }
         costBoth = (costs[i]+testingError)/2.0;
-        if (costs[i]+std::abs(costs[i].error)<costMinTraining-std::abs(costMinTraining.error)){costMinTraining=costs[i]; indiceMinTraining=i;}
-        if (testingError+std::abs(testingError.error)<costMinTest-std::abs(costMinTest.error)){costMinTest=testingError; indiceMinTest=i;}
-        if (costBoth+std::abs(costBoth.error)<costMinBoth-std::abs(costMinBoth.error)){costMinBoth=costBoth; indiceMinBoth=i;}
+        if (std::signbit((costs[i]-costMinTraining).number)){costMinTraining=costs[i]; indiceMinTraining=i;}
+        if (std::signbit((testingError-costMinTest).number)){costMinTest=testingError; indiceMinTest=i;}
+        if (std::signbit((costBoth-costMinBoth).number)){costMinBoth=costBoth; indiceMinBoth=i;}
 
         std::cout << "cout d'entrainement: "  << i << ": " << costs[i] << std::endl;
         std::cout << "gradient : "  << i << ": " << gradientNorms[i] << std::endl;
@@ -86,17 +86,16 @@ std::string const& strategy, Sdouble const& flat, std::string const folder, std:
 {
     int const PTrain = data[0].cols();
     std::ostringstream epsStream;
-    epsStream << eps;
+    epsStream << eps.number;
     std::string epsString = epsStream.str();
     std::ostringstream PStream;
     PStream << PTrain;
     std::string PString = PStream.str();
 
     std::ifstream weightsMatrixesFlux(("Record/"+folder+"/weights_matrixes_"+algo+"_"+fileExtension+"(eps="+epsString+", P="+PString+").csv").c_str());
-    std::ifstream weightsVectorsFlux(("Record/"+folder+"/weights_vectors_"+algo+"_"+fileExtension+"(eps="+epsString+", P="+PString+").csv").c_str());
     std::ifstream costFlux(("Record/"+folder+"/cost_"+algo+"_"+fileExtension+"(eps="+epsString+", P="+PString+").csv").c_str());
     std::ifstream gradientNormFlux(("Record/"+folder+"/gradientNorm_"+algo+"_"+fileExtension+"(eps="+epsString+", P="+PString+").csv").c_str());
-    if(!weightsMatrixesFlux || !weightsVectorsFlux || !costFlux || !gradientNormFlux){std::cout << "Impossible d'ouvrir un des fichiers" << std::endl; exit(1);}
+    if(!weightsMatrixesFlux || !costFlux || !gradientNormFlux){std::cout << "Impossible d'ouvrir un des fichiers" << std::endl; exit(1);}
 
     int const PTest=data[2].cols();
     std::vector<Eigen::SMatrixXd> weights(L);
@@ -125,9 +124,8 @@ std::string const& strategy, Sdouble const& flat, std::string const folder, std:
     Sdouble costBoth;
     int indiceMinTraining, indiceMinTest, indiceMinBoth;
 
-    int nbPoints = nbLines(costFlux);
+    int nbPoints = nbLines(costFlux)/3;
     costFlux.clear(); costFlux.seekg(0,std::ios::beg);
-
 
     for(int i=0; i<nbPoints; i++)
     {
@@ -140,7 +138,8 @@ std::string const& strategy, Sdouble const& flat, std::string const folder, std:
         gradientNormFlux >> currentGradientNorm;
         addPoint(weights,bias,weightsList,biasList,currentCost,currentGradientNorm,costs,gradientNorms,data[0],data[1],L,PTrain,nbNeurons,globalIndices,activations,epsClose,
         nbDichotomie,flat,strategy);
-        //if (i!=0 && i%tirageDisplay==0){std::cout << "Au bout de " << i << " points analysés, il y a " << weightsList.size() << " minimums" << std::endl; std::cout << " " << std::endl;}
+        costFlux >> currentCost; costFlux >> currentCost; gradientNormFlux >> currentGradientNorm; gradientNormFlux >> currentGradientNorm;
+        if (i!=0 && i%tirageDisplay==0){std::cout << "Au bout de " << i << " points analysés, il y a " << weightsList.size() << " minimums" << std::endl; std::cout << " " << std::endl;}
     }
 
     for (size_t i=0; i<weightsList.size(); i++)
@@ -155,9 +154,9 @@ std::string const& strategy, Sdouble const& flat, std::string const folder, std:
             costMinBoth=(costMinTraining+testingError)/2.0; indiceMinBoth=0;
         }
         costBoth = (costs[i]+testingError)/2.0;
-        if (costs[i]+std::abs(costs[i].error)<costMinTraining-std::abs(costMinTraining.error)){costMinTraining=costs[i]; indiceMinTraining=i;}
-        if (testingError+std::abs(testingError.error)<costMinTest-std::abs(costMinTest.error)){costMinTest=testingError; indiceMinTest=i;}
-        if (costBoth+std::abs(costBoth.error)<costMinBoth-std::abs(costMinBoth.error)){costMinBoth=costBoth; indiceMinBoth=i;}
+        if (std::signbit((costs[i]-costMinTraining).number)){costMinTraining=costs[i]; indiceMinTraining=i;}
+        if (std::signbit((testingError-costMinTest).number)){costMinTest=testingError; indiceMinTest=i;}
+        if (std::signbit((costBoth-costMinBoth).number)){costMinBoth=costBoth; indiceMinBoth=i;}
 
         std::cout << "cout d'entrainement: "  << i << ": " << costs[i] << std::endl;
         std::cout << "gradient : "  << i << ": " << gradientNorms[i] << std::endl;
@@ -169,12 +168,12 @@ std::string const& strategy, Sdouble const& flat, std::string const folder, std:
     std::cout << "Il y a " << weightsList.size() << " minimums " << std::endl;
 
     std::cout << "Moyenne coût d'entrainement: " << meanTraining << " +- " << sdTraining << std::endl;
-    std::cout << "Le plus petit coût d'entraînement est de: " << costMinTraining << " de numéro " << indiceMinTraining << std::endl;
+    std::cout << "Le plus petit coût d'entraînement est de: " << costMinTraining << std::endl;
 
     std::cout << "Moyenne coût de test: " << meanTest << " +- " << sdTest << std::endl;
-    std::cout << "Le plus petit coût de test est de: " << costMinTest << " de numéro " << indiceMinTest << std::endl;
+    std::cout << "Le plus petit coût de test est de: " << costMinTest << std::endl;
 
-    std::cout << "Le plus petit coût global est de: " << costMinBoth << " de numéro " << indiceMinBoth << std::endl;
+    std::cout << "Le plus petit coût global est de: " << costMinBoth << std::endl;
 
     return weightsList.size();
 }
@@ -299,8 +298,8 @@ int const& tirageDisplay, std::string const folder, std::string const fileExtens
         {
             for(int l=0; l<L; l++)
             {
-                weightsMatrixesFlux << weights[l] << std::endl;
-                weightsMatrixesFlux << bias[l] << std::endl;
+                weightsMatrixesFlux << convertToDouble(weights[l]) << std::endl;
+                weightsMatrixesFlux << convertToDouble(bias[l]) << std::endl;
 
                 jump=nbNeurons[l+1]*nbNeurons[l];
                 weights[l].resize(jump,1);
@@ -310,7 +309,7 @@ int const& tirageDisplay, std::string const folder, std::string const fileExtens
                 point.segment(globalIndices[2*l+1]-jump,jump)=bias[l];
             }
 
-            costFlux << study["finalCost"].number << std::endl;
+            costFlux << study["finalCost"] << std::endl;
             costFlux << std::abs(study["finalCost"].error) << std::endl;
             costFlux << study["finalCost"].digits() << std::endl;
 
@@ -318,7 +317,7 @@ int const& tirageDisplay, std::string const folder, std::string const fileExtens
             gradientNormFlux << std::abs(study["finalGradient"].error) << std::endl;
             gradientNormFlux << study["finalGradient"].digits() << std::endl;
 
-            weightsVectorsFlux << point.transpose() << std::endl;
+            weightsVectorsFlux << convertToDouble(point.transpose()) << std::endl;
             minAttain++;
 
         }
