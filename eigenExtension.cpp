@@ -1,6 +1,6 @@
 #include "eigenExtension.h"
 
-Eigen::SMatrixXd convert(Eigen::MatrixXd const& Md)
+Eigen::SMatrixXd convertToShaman(Eigen::MatrixXd const& Md)
 {
     int nbRows = Md.rows(), nbCols = Md.cols();
     Eigen::SMatrixXd MS(nbRows,nbCols);
@@ -14,6 +14,22 @@ Eigen::SMatrixXd convert(Eigen::MatrixXd const& Md)
     }
 
     return MS;
+}
+
+Eigen::MatrixXd convertToDouble(Eigen::SMatrixXd const& Md)
+{
+    int nbRows = Md.rows(), nbCols = Md.cols();
+    Eigen::MatrixXd M(nbRows,nbCols);
+
+    for(int i=0; i<nbRows; i++)
+    {
+        for(int j=0; j<nbCols; j++)
+        {
+            M(i,j) = double(Md(i,j));
+        }
+    }
+
+    return M;
 }
 
 Sdouble accumul(std::vector<Sdouble> const& values)

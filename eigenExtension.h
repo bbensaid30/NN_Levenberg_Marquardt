@@ -8,7 +8,8 @@
 #include "shaman/helpers/shaman_eigen.h"
 
 
-Eigen::SMatrixXd convert(Eigen::MatrixXd const& Md);
+Eigen::SMatrixXd convertToShaman(Eigen::MatrixXd const& Md);
+Eigen::MatrixXd convertToDouble(Eigen::SMatrixXd const& Md);
 
 Sdouble accumul(std::vector<Sdouble> const& values);
 Sdouble InnerProduct(std::vector<Sdouble> const& values1, std::vector<Sdouble> const& values2);
