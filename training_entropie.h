@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cmath>
 
 #include <Eigen/Dense>
 #include "shaman.h"
@@ -14,6 +15,7 @@
 #include "propagation.h"
 #include "scaling.h"
 #include "utilities.h"
+#include "eigenExtension.h"
 
 std::map<std::string,Sdouble> LM_entropie(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations,std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,

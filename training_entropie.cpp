@@ -135,8 +135,7 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
     Eigen::SVectorXd delta(N);
     Eigen::SMatrixXd H(N,N);
     Eigen::SMatrixXd D(N,N);
-    Sdouble factor, linearReduction, R, muc, pas=0.1, deriv0;
-    Sdouble mu=0;
+    Sdouble factor, linearReduction, R, mu=10, muc=0, pas=0.1, deriv0;
 
     std::vector<Eigen::SMatrixXd> weightsPrec(L);
     std::vector<Eigen::SVectorXd> biasPrec(L);
@@ -186,19 +185,19 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
             muFlux << mu << std::endl;
         }
 
-        if(R-std::abs(R.error)>RMax)
+        if(!std::signbit((R-RMax).number))
         {
             mu/=2;
             if(mu<muc){mu=0;}
         }
-        else if(R+std::abs(R.error)<RMin)
+        else if(std::signbit((R-RMin).number))
         {
             deriv0 = (entropie(Y,As[L]-pas*intermed,P,nL)-costPrec)/pas;
             factor = -2*(cost-costPrec-deriv0)/deriv0;
-            if(factor+std::abs(factor.error)<2){factor = 2;}
-            if(factor-std::abs(factor.error)>10){factor = 10;}
+            if(std::signbit((factor-2).number){factor = 2;}
+            if(!std::signbit((factor-10).number)){factor = 10;}
 
-            if(mu+std::abs(mu.error)<std::pow(10,-16))
+            if(mu<std::pow(10,-16))
             {
                 //Eigen::SelfAdjointEigenSolver<Eigen::SMatrixXd> es(Q);
                 //muc = 1.0/(es.eigenvalues().minCoeff());
@@ -208,7 +207,7 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
             }
             mu*=factor;
         }
-        if (cost+std::abs(cost.error) < costPrec-std::abs(costPrec.error))
+        if (std::signbit((cost-costPrec).number))
         {
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             notBack++;
@@ -222,6 +221,8 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
             if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
             notBack=0; nbBack++;
         }
+
+        if(numericalNoise(cost) || numericalNoise(mu) || numericalNoise(factor)){break;}
 
         H = Q+mu*D;
         solve(gradient,H,delta);
@@ -270,8 +271,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
     Eigen::SVectorXd delta(N), deltaPrec(N);
     Eigen::SMatrixXd H(N,N);
     Eigen::SMatrixXd D(N,N);
-    Sdouble factor, linearReduction, R, muc, pas=0.1, deriv0;
-    Sdouble mu=0;
+    Sdouble factor, linearReduction, R, mu=10, muc=0, pas=0.1, deriv0;
 
     std::vector<Eigen::SMatrixXd> weightsPrec(L);
     std::vector<Eigen::SVectorXd> biasPrec(L);
@@ -322,19 +322,19 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
             muFlux << mu << std::endl;
         }
 
-        if(R-std::abs(R.error)>RMax)
+        if(!std::signbit((R-RMax).number))
         {
             mu/=2;
             if(mu<muc){mu=0;}
         }
-        else if(R+std::abs(R.error)<RMin)
+        else if(std::signbit((R-RMin).number))
         {
             deriv0 = (entropie(Y,As[L]-pas*intermed,P,nL)-costPrec)/pas;
             factor = -2*(cost-costPrec-deriv0)/deriv0;
-            if(factor+std::abs(factor.error)<2){factor = 2;}
-            if(factor-std::abs(factor.error)>10){factor = 10;}
+            if(std::signbit((factor-2).number)){factor = 2;}
+            if(!std::signbit((factor-10).number)){factor = 10;}
 
-            if(mu+std::abs(mu.error)<std::pow(10,-16))
+            if(mu<std::pow(10,-16))
             {
                 //Eigen::SelfAdjointEigenSolver<Eigen::SMatrixXd> es(Q);
                 //muc = 1.0/(es.eigenvalues().minCoeff());
@@ -344,11 +344,11 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
             }
             mu*=factor;
         }
-        if (cost+std::abs(cost.error) < costPrec-std::abs(costPrec.error)  || (iter>1 && angle+std::abs(angle.error)<costMin-std::abs(costMin.error)))
+        if (std::signbit((cost-costPrec).number)  || (iter>1 && std::signbit((angle-costMin).number)))
         {
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             notBack++;
-            costMin=Sstd::min(costMin,cost);
+            costMin=minimum(costMin,cost);
             backwardJacob_entropie(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E_inv,E2_inv,J,J2); Q=J2.transpose()*J2; gradient=J.transpose()*E_invTranspose;
             gradientNorm = gradient.norm();
         }
@@ -359,6 +359,8 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
             if (notBack>notBackMax){notBackMax=notBack; endSequenceMax=endSequence;}
             notBack=0; nbBack++;
         }
+
+        if(numericalNoise(cost) || numericalNoise(mu)`|| numericalNoise(factor)){break;}
 
         H = Q+mu*D;
         solve(gradient,H,delta);
@@ -408,7 +410,7 @@ bool const record, std::string const fileExtension)
     Eigen::SVectorXd delta(N), deltaPrec(N);
     Eigen::SMatrixXd H(N,N);
     Eigen::SMatrixXd I  = Eigen::SMatrixXd::Identity(N,N);
-    Sdouble mu, linearReduction, R, nu=beta;
+    Sdouble mu=10, linearReduction, R, nu=beta;
 
     std::vector<Eigen::SMatrixXd> weightsPrec(L);
     std::vector<Eigen::SVectorXd> biasPrec(L);
@@ -457,11 +459,11 @@ bool const record, std::string const fileExtension)
             muFlux << mu << std::endl;
         }
 
-        if (R-std::abs(R.error)>0)
+        if (!std::signbit(R.number))
         {
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             notBack++;
-            mu*=Sstd::max(1.0/gamma,1-(beta-1)*Sstd::pow(2*R-1,p));
+            mu*=maximum(1.0/gamma,1-(beta-1)*Sstd::pow(2*R-1,p));
             backwardJacob_entropie(L,P,nbNeurons,globalIndices,weights,bias,As,slopes,E_inv,E2_inv,J,J2); Q=J2.transpose()*J2; gradient=J.transpose()*E_invTranspose;
             gradientNorm = gradient.norm();
         }
@@ -473,6 +475,8 @@ bool const record, std::string const fileExtension)
             notBack=0; nbBack++;
             mu*=nu; nu*=2;
         }
+
+        if(numericalNoise(cost) || numericalNoise(mu) || numericalNoise(nu)){break;}
 
         H = Q+mu*I;
         solve(gradient,H,delta);
