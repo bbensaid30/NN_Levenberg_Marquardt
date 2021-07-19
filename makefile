@@ -12,9 +12,11 @@ $(EXEC): $(OBJ)
 	$(CC) -o $@ $^ $(CXXFLAGS) $(LDLIBS) $(LDFLAGS)
 	 
 main.o: init.h test.h data.h study_base.h utilities.h study_graphics.h
+utilities.o: eigenExtension.h
+init.o: eigenExtension.h
 propagation.o: activations.h
-training.o: propagation.h utilities.h scaling.h
-training_entropie.o: propagation.h utilities.h scaling.h
+training.o: eigenExtension.h propagation.h utilities.h scaling.h
+training_entropie.o: eigenExtension.h propagation.h utilities.h scaling.h
 test.o: init.h training.h training_entropie.h utilities.h
 addStrategy.o: propagation.h utilities.h
 study_base.o: init.h propagation.h training.h training_entropie.h utilities.h addStrategy.h
