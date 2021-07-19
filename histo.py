@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.lib.function_base import median
 import pandas as pd
+from scipy import stats
 
 def trace(nbPoints, type):
     x_axis=[]; y_axis=[]
@@ -37,87 +38,72 @@ def newCost(costs,costsError,cost,costError,nbByBins):
 
     if(taille==0):
         costs.append(cost)
-        costError.append(costError)
+        costsError.append(costError)
         nbByBins.append(1)
     else:
         while(i<taille and continuer):
             if(similarCost(cost,costError,costs[i],costsError[i])):
                 continuer=False
-                costError[i]+=costError
+                costsError[i]+=costError
                 nbByBins[i]+=1
             else:
                 i+=1
         if(i==taille):
             costs.append(cost)
-            costError.append(costError)
+            costsError.append(costError)
             nbByBins.append(1)
             
     
-def histoCost(fileName="", graph=False, seuilProp=0.0):
-    costs=[]; costsError=[]; nbByBins=[]; bins=[]
+def histoCost(fileName="", graph=False, type="width"):
+    CostContent=[]; costs=[]; costsError=[]; nbByBins=[]; bins=[]
     fileCostContent=pd.read_csv(fileName,header=None).to_numpy()
-    iter=fileCostContent.shape[0]%3
+    iter=fileCostContent.shape[0]//3
+    print(iter)
 
     for i in range(iter):
-        newCost(costs,costsError,fileCostContent[3*i],fileCostContent[3*i+1],nbByBins)  
+        newCost(costs,costsError,fileCostContent[3*i][0],fileCostContent[3*i+1][0],nbByBins)
+        CostContent.append(fileCostContent[3*i][0])  
     nbHisto=len(costs)
     for i in range(nbHisto):
         costsError[i]/=nbByBins[i]
+        nbByBins[i]/=iter
     
+    L = [ (costs[i],i) for i in range(nbHisto) ]
+    L.sort()
+    sorted_cost,permutation = zip(*L)
+    sorted_costError=[costsError[i] for i in permutation]
+    sorted_nbByBins=[nbByBins[i] for i in permutation]
+    print(sorted_cost)
     
-    #print(costs)
-    amplitudes , bins, patches = plt.hist(CostContent, density=False, range=(0,10), bins=nbHisto, weights=np.ones(iter) / iter)
-    #plt.title("Répartition des coûts pour neurons="+neuronsString+"("+str(iter)+" points)")
-    plt.title("Répartition des coûts pour L="+LString+"("+str(iter)+" points)")
-    #plt.title("Répartition des coûts pour P="+PString+"("+str(iter)+" points)")
+    plt.stem(costs, nbByBins,
+            markerfmt = 'ro', linefmt = 'g--', basefmt = 'm:', use_line_collection = True)
+    plt.margins(0.1, 0.1)
+    if type=="width":
+        plt.title("Répartition des coûts pour neurons="+neuronsString+"("+str(iter)+" points)")
+    elif type=="deep":
+        plt.title("Répartition des coûts pour L="+LString+"("+str(iter)+" points)")
+    else:
+        plt.title("Répartition des coûts pour P="+PString+"("+str(iter)+" points)")
     plt.ylabel('Proportion de points')
     plt.xlabel('Coût')
     if(graph):
         plt.show()
-
-    # nbAmplitudes=len(amplitudes)
-    nbMinsNonEquivalent=0
-    # for i in range(nbAmplitudes):
-    #     if amplitudes[i]>seuilProp:
-    #         nbMinsNonEquivalent+=1
-
-    for nb in nbByBins:
-        if(nb/iter>seuilProp):
-            nbMinsNonEquivalent+=1
     
-    
-    #print("Nombre de mins non équivalents environ de: ", nbMinsNonEquivalent)
-    return nbMinsNonEquivalent
+    print("Nombre de mins non équivalents environ de: ", nbHisto)
+    return 
 
-def medianHist(fileName="", seuilProp=0.0):
-    nbsMins=[]
-    ecartHisto=10000
-    i=1
-    while (ecartHisto!=0):
-        largeur=10**(-i)
-        nbMin=histoCost(fileName,largeur,seuilProp)
-        nbsMins.append(nbMin)
-        if (i>=2):
-            ecartHisto=nbMin-nbsMins[-2]
-        i+=1
-        
-    
-    print("Médiane: ", np.median(np.array(nbsMins)))
-    print("Moyenne: ", np.mean(np.array(nbsMins)))
-    print("Ecart-type: ", np.std(np.array(nbsMins)))
 
-algo="LMGeodesic"
+algo="LMF"
 activationString="sigmoidl"
-folder="sineWave/P=40|L"
+folder="sineWaveSd/P=40|width=1|"+activationString
 fileExtension="1-"
-LString="2"
+LString="1"
 neuronsString="1"
-epsString="1e-07"
+epsString="1e-15"
 PString="40"
 fileName="Record/"+folder+"/cost_"+algo+"_"+fileExtension+"(eps="+epsString+", P="+PString+").csv"
-largeur=10**(-3)
 seuilProp=0.0
-#histoCost(fileName,largeur,True,seuilProp)
-medianHist(fileName,seuilProp)
+histoCost(fileName,True,"deep")
+
 
 #trace(7,"width")
