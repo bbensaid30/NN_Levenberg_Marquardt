@@ -194,7 +194,7 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
         {
             deriv0 = (entropie(Y,As[L]-pas*intermed,P,nL)-costPrec)/pas;
             factor = -2*(cost-costPrec-deriv0)/deriv0;
-            if(std::signbit((factor-2).number){factor = 2;}
+            if(std::signbit((factor-2).number)){factor = 2;}
             if(!std::signbit((factor-10).number)){factor = 10;}
 
             if(mu<std::pow(10,-16))
@@ -360,7 +360,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
             notBack=0; nbBack++;
         }
 
-        if(numericalNoise(cost) || numericalNoise(mu)`|| numericalNoise(factor)){break;}
+        if(numericalNoise(cost) || numericalNoise(mu) || numericalNoise(factor)){break;}
 
         H = Q+mu*D;
         solve(gradient,H,delta);

@@ -180,7 +180,7 @@ void standardization(Eigen::SMatrixXd& X)
         X.array().row(i) -= mean(i);
     }
 
-    standardDeviation = X.rowwise().squaredNorm()/((Sdouble)(P));
+    standardDeviation = X.rowwise().squaredNorm()/(Sdouble(P));
     standardDeviation.cwiseSqrt();
 
     for(int i=0; i<dim;i++)
@@ -229,7 +229,20 @@ void readVector(std::ifstream& flux, Eigen::SVectorXd& result, int const& nbRows
 
         std::stringstream stream(line);
         stream >> result(i);
-
     }
 
+}
+
+Sdouble indexProperValues(Eigen::SMatrixXd const& H)
+{
+    Sdouble prop=0;
+    Eigen::SelfAdjointEigenSolver<Eigen::SMatrixXd> eigensolver(H);
+    Eigen::SVectorXd eivals = eigensolver.eigenvalues();
+
+    int const taille = eivals.rows();
+    for(int i=0; i<taille; i++)
+    {
+        if(eivals(i)<0){prop++;}
+    }
+    return prop/taille;
 }

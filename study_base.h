@@ -29,7 +29,7 @@ Sdouble const& radiusBall, int const& tirageDisplay, int const& tirageMin, std::
 
 int denombrementMinsPost(std::vector<Eigen::SMatrixXd> const&  data, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::string const& algo, Sdouble const& epsClose, int const& nbDichotomie, Sdouble const& eps, int const& tirageDisplay,
-std::string const& strategy, Sdouble const& flat, std::string const folder="", std::string const fileExtension="");
+int const& tirageMin, int const& nbTirages, std::string const& strategy, Sdouble const& flat, std::string const folder="", std::string const fileExtension="");
 
 
 

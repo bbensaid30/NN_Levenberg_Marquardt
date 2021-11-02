@@ -1,0 +1,12 @@
+#!/bin/bash                                                                                                                                                                                                    
+#
+#SBATCH --nodes=1
+#SBATCH -c 2
+#SBATCH --gres=gpu:1
+#SBATCH -t 0-01:00
+#SBATCH --job-name="training"
+#SBATCH --mail-user=bilel.bensaid30@gmail.com
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+# Exécution du code
+./training

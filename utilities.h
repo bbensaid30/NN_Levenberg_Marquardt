@@ -45,6 +45,8 @@ int nbLines(std::ifstream& flux);
 void readMatrix(std::ifstream& flux, Eigen::SMatrixXd& result, int const& nbRows, int const& nbCols);
 void readVector(std::ifstream& flux, Eigen::SVectorXd& result, int const& nbRows);
 
+Sdouble indexProperValues(Eigen::SMatrixXd const& H);
+
 
 
 #endif

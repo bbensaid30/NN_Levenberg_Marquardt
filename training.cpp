@@ -103,6 +103,7 @@ int const& maxIter, bool const record, std::string const fileExtension)
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=Sdouble(endSequenceMax-notBackMax);
     study["endSequenceMax"]=Sdouble(endSequenceMax); study["startSequenceFinal"]=Sdouble(iter-notBack); study["propBack"]=Sdouble(nbBack)/Sdouble(iter);
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -220,6 +221,7 @@ Sdouble& mu, Sdouble& factor, Sdouble const& eps, int const& maxIter, std::strin
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -354,6 +356,7 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -531,6 +534,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& sigma, bool const record,
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 }
@@ -643,6 +647,7 @@ bool const record, std::string const fileExtension)
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 }
@@ -782,6 +787,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -924,6 +930,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& epsDiag, 
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -1072,6 +1079,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha, Sd
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -1204,6 +1212,7 @@ bool const record, std::string const fileExtension)
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=Sdouble(endSequenceMax-notBackMax);
     study["endSequenceMax"]=Sdouble(endSequenceMax); study["startSequenceFinal"]=Sdouble(iter-notBack); study["propBack"]=Sdouble(nbBack)/Sdouble(iter);
+    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 }

@@ -10,8 +10,8 @@ void simple(std::vector<int> const& nbNeurons, std::vector<Eigen::SMatrixXd>& we
 
     for(l=0;l<L;l++)
     {
-        weights[l] = convert(Eigen::Rand::balanced<Eigen::MatrixXd>(nbNeurons[l+1],nbNeurons[l],gen));
-        bias[l] = convert(Eigen::Rand::balanced<Eigen::MatrixXd>(nbNeurons[l+1],1,gen));
+        weights[l] = convertToShaman(Eigen::Rand::balanced<Eigen::MatrixXd>(nbNeurons[l+1],nbNeurons[l],gen));
+        bias[l] = convertToShaman(Eigen::Rand::balanced<Eigen::MatrixXd>(nbNeurons[l+1],1,gen));
     }
 }
 
@@ -26,8 +26,8 @@ void uniform(std::vector<int> const& nbNeurons, std::vector<Eigen::SMatrixXd>& w
 
     for (l=0;l<L;l++)
     {
-        weights[l] = convert((b-a)*Eigen::Rand::uniformReal<Eigen::MatrixXd>(nbNeurons[l+1],nbNeurons[l],gen).array()+a);
-        bias[l] = convert((b-a)*Eigen::Rand::uniformReal<Eigen::MatrixXd>(nbNeurons[l+1],1,gen).array()+a);
+        weights[l] = convertToShaman((b-a)*Eigen::Rand::uniformReal<Eigen::MatrixXd>(nbNeurons[l+1],nbNeurons[l],gen).array()+a);
+        bias[l] = convertToShaman((b-a)*Eigen::Rand::uniformReal<Eigen::MatrixXd>(nbNeurons[l+1],1,gen).array()+a);
     }
 }
 
@@ -41,8 +41,8 @@ void normal(std::vector<int> const& nbNeurons, std::vector<Eigen::SMatrixXd>& we
 
     for (l=0;l<L;l++)
     {
-        weights[l] = convert(Eigen::Rand::normal<Eigen::MatrixXd>(nbNeurons[l+1],nbNeurons[l],gen,mu,sigma));
-        bias[l] = convert(Eigen::Rand::normal<Eigen::MatrixXd>(nbNeurons[l+1],1,gen,mu,sigma));
+        weights[l] = convertToShaman(Eigen::Rand::normal<Eigen::MatrixXd>(nbNeurons[l+1],nbNeurons[l],gen,mu,sigma));
+        bias[l] = convertToShaman(Eigen::Rand::normal<Eigen::MatrixXd>(nbNeurons[l+1],1,gen,mu,sigma));
     }
 }
 
