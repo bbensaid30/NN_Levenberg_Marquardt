@@ -11,34 +11,29 @@
 #include "shaman/helpers/shaman_eigen.h"
 
 #include "activations.h"
+#include "perte.h"
 
 
-//------------------------------------------------------------------Norme2----------------------------------------------------------------------------------------
+//------------------------------------------------------------------ Propagation directe ----------------------------------------------------------------------------------------
 
 void fforward(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
-std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& E);
+std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes);
 
-void backward(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& E, Eigen::SVectorXd& gradient, Eigen::SMatrixXd& Q);
+Sdouble risk(Eigen::SMatrixXd const& Y, int const& P, Eigen::SMatrixXd const& output_network, std::string const& type_perte);
 
-void backwardJacob(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
+//-------------------------------------------------------------------- Rétropropagation -----------------------------------------------------------------------------------------------
+
+void backward(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
+std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SVectorXd& gradient, std::string const& type_perte);
+
+void QSO_backward(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
+std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes,Eigen::SVectorXd& gradient, Eigen::SMatrixXd& Q, std::string const& type_perte);
+
+void QSO_backwardJacob(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
 std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& J);
 
-//---------------------------------------------------------------Entropie---------------------------------------------------------------------------------------------
 
-void fforward_entropie(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::vector<Eigen::SMatrixXd>& As,
-std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& E_inv, Eigen::SMatrixXd& E2_inv);
-
-void backward_entropie(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& E_inv, Eigen::SMatrixXd& E2_inv, Eigen::SVectorXd& gradient, Eigen::SMatrixXd& Q);
-
-void backwardJacob_entropie(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& E_inv, Eigen::SMatrixXd& E2_inv, Eigen::SMatrixXd& J, Eigen::SMatrixXd& J2);
-
-Sdouble entropie(Eigen::SMatrixXd const& Y, Eigen::SMatrixXd const& outputs, int const& P, int const& nL);
-
-//--------------------------------------------------------------Générale---------------------------------------------------------------------------------------------
+//-------------------------------------------------------------- Mise à jour ---------------------------------------------------------------------------------------------
 
 void solve(Eigen::SVectorXd const& gradient, Eigen::SMatrixXd const& hessian, Eigen::SVectorXd& delta, std::string const method = "HouseholderQR");
 
