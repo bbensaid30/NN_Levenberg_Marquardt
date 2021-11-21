@@ -8,69 +8,22 @@
 #include <map>
 #include <cmath>
 
+#include <random>
+#include <algorithm>
+
 #include <Eigen/Dense>
 #include "shaman.h"
 #include "shaman/helpers/shaman_eigen.h"
 
-#include "propagation.h"
-#include "utilities.h"
-#include "eigenExtension.h"
-#include "scaling.h"
+#include "SGDs.h"
+#include "LMs.h"
+#include "perso.h"
 
-std::map<std::string,Sdouble> LM(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble& mu, Sdouble& factor, Sdouble const& eps, int const& maxIter, bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMBall(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations,std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, Sdouble& mu, Sdouble& factor, Sdouble const& eps,
-int const& maxIter, std::string const& norm, Sdouble const& radiusBall, bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMF(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble const& eps, int const& maxIter, Sdouble const& RMin, Sdouble const& RMax, bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMMore(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble const& eps, int const& maxIter, Sdouble const& sigma, bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMNielson(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble const& eps, int const& maxIter, Sdouble const& tau, Sdouble const& beta, Sdouble const& gamma, int const& p, Sdouble const& epsDiag,
-bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMUphill(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble const& eps, int const& maxIter, Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMPerso(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, Sdouble const& eps, int const& maxIter,
-Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& epsDiag, bool const record=false, std::string const fileExtension="");
-
-//------------------------------------------------------------- Méthodes plus coûteuses utilisant explicitement la jacobienne -----------------------------------------------------------------------------------------------
-
-std::map<std::string,Sdouble> LMGeodesic(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble const& eps, int const& maxIter, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha, Sdouble const& pas,
-bool const record=false, std::string const fileExtension="");
-
-std::map<std::string,Sdouble> LMJynian(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-Sdouble const& eps, int const& maxIter, Sdouble const& Rlim, Sdouble const& RMin, Sdouble const& RMax, Sdouble& factorMin,
-Sdouble const& power, Sdouble const& alphaChap, bool const record=false, std::string const fileExtension="");
-
-//-- --------------------------------------------------------- Initialisation simple -------------------------------------------------------------------------------------------------------------
-
-std::map<std::string,Sdouble> init(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons,std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, bool const record=false, std::string const fileExtension="");
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-std::map<std::string,Sdouble> train(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
-std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& algo,
-Sdouble const& eps, int const& maxIter, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
+std::map<std::string,Sdouble> train(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+ std::string const& famille_algo, std::string const& algo,Sdouble const& eps, int const& maxIter, Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const & batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
-Sdouble const& tau, Sdouble const& beta, Sdouble const& gamma, int const& p, Sdouble const& sigma, std::string const& norm, Sdouble const& radiusBall,
 bool const record=false, std::string const fileExtension="");
-
 
 #endif

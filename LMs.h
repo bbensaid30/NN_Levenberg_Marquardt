@@ -60,7 +60,7 @@ std::map<std::string,Sdouble> train_LM(Eigen::SMatrixXd const& X, Eigen::SMatrix
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, std::string const& algo,
 Sdouble const& eps, int const& maxIter, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
-Sdouble const& tau, Sdouble const& beta, Sdouble const& gamma, int const& p, Sdouble const& sigma, std::string const& norm, Sdouble const& radiusBall,
+Sdouble const& tau, Sdouble const& beta, Sdouble const& gamma, int const& p,
 bool const record=false, std::string const fileExtension="");
 
 
