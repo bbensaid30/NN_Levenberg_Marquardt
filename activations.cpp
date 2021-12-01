@@ -58,6 +58,8 @@ void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixX
         softmax(Z,S);
     }
 
+
+
     else if(nameActivation == "polyTwo")
     {
         polyTwo(Z,S);
@@ -69,6 +71,14 @@ void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixX
     else if(nameActivation=="polyFour")
     {
         polyFour(Z,S);
+    }
+    else if(nameActivation=="polyFive")
+    {
+        polyFive(Z,S);
+    }
+    else if(nameActivation=="polyEight")
+    {
+        polyEight(Z,S);
     }
     else if(nameActivation=="expTwo")
     {
@@ -113,6 +123,18 @@ void polyFour(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c)
 {
     S = 4*Sstd::exp(c/2)*Z.array()*(Z.array().pow(2)-1);
     Z = Sstd::exp(c/2)*(Z.array().pow(4)-2*Z.array().pow(2)+3);
+}
+
+void polyFive(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+{
+    S = 5*Z.array().pow(4)-16*Z.array().pow(3)+6*Z.array().pow(2)+16*Z.array()-11;
+    Z = Z.array().pow(5)-4*Z.array().pow(4)+2*Z.array().pow(3)+8*Z.array().pow(2)-11*Z.array()-12;
+}
+
+void polyEight(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+{
+    S = 280*Z.array()*(Z.array()-1).pow(3)*(Z.array()-2).pow(3);
+    Z = 35*Z.array().pow(8)-360*Z.array().pow(7)+1540*Z.array().pow(6)-3528*Z.array().pow(5)+4620*Z.array().pow(4)-3360*Z.array().pow(3)+1120*Z.array().pow(2)+1;
 }
 
 void expTwo(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c)

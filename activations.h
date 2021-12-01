@@ -20,6 +20,9 @@ void reLU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 void polyTwo(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
 void polyThree(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
 void polyFour(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
+void polyFive(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void polyEight(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+
 void expTwo(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
 void expFour(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
 void expFive(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
