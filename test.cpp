@@ -4,15 +4,14 @@
 void test_PolyTwo(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
-    std::ofstream distanceFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"distance"+".csv").c_str());
     std::ofstream initFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !distanceFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
-    Sdouble distance;
+    std::ofstream trackingFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -46,51 +45,60 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
 
     points[0]=Eigen::SVectorXd::Zero(2); points[1]=Eigen::SVectorXd::Zero(2); points[2]=Eigen::SVectorXd::Zero(2); points[3]=Eigen::SVectorXd::Zero(2);
     points[0](0)=-2; points[0](1)=1; points[1](0)=2; points[1](1)=-1; points[2](0)=0; points[2](1)=-1; points[3](0)=0; points[3](1)=1;
+
     for(i=0;i<nbTirage;i++)
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,
         learning_rate,seuil,beta1,beta2,batch_size,
-        mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking);
 
-        if (std::abs(study["finalGradient"].error)>eps)
-        {
-            std::cout << i << ": " << study["finalGradient"].digits() << std::endl;
-        }
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
             currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
             numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
             if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
             else{iters[numeroPoint]+=study["iter"];}
-
-            if(record && numeroPoint>=0)
-            {
-                gradientNormFlux << numeroPoint << std::endl;
-                gradientNormFlux << study["finalGradient"].number << std::endl;
-                gradientNormFlux << study["finalGradient"].error << std::endl;
-
-                distance=(currentPoint-points[numeroPoint]).norm();
-                distanceFlux << numeroPoint << std::endl;
-                distanceFlux << distance.number << std::endl;
-                distanceFlux << distance.error << std::endl;
-
-                iterFlux << numeroPoint << std::endl;
-                iterFlux << study["iter"].number << std::endl;
-
-                initFlux << numeroPoint << std::endl;
-                initFlux << weightsInit[0](0,0).number << std::endl;
-                initFlux << biasInit[0](0).number << std::endl;
-            }
         }
         else
         {
             nonMin++;
             std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+            }
         }
 
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
+        }
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+        }
     }
+
     for(i=0;i<4;i++)
     {
         if (proportions[i]!=0){distances[i]/=proportions[i]; iters[i]/=proportions[i];}
@@ -125,14 +133,12 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
 void test_PolyThree(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
 {
     std::ofstream gradientNormFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
-    std::ofstream distanceFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"distance"+".csv").c_str());
     std::ofstream initFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !distanceFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
-    Sdouble distance;
+    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -173,49 +179,52 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
 
-        if (std::abs(study["finalGradient"].error)>eps)
-        {
-            std::cout << i << ": " << study["finalGradient"].digits() << std::endl;
-        }
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
             currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
             numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
             if(numeroPoint<0){farMin++;}
             else{iters[numeroPoint]+=study["iter"];}
-
-            if(record && numeroPoint>=0)
-            {
-                gradientNormFlux << numeroPoint << std::endl;
-                gradientNormFlux << study["finalGradient"].number << std::endl;
-                gradientNormFlux << study["finalGradient"].error << std::endl;
-
-                distance=(currentPoint-points[numeroPoint]).norm();
-                distanceFlux << numeroPoint << std::endl;
-                distanceFlux << distance.number << std::endl;
-                distanceFlux << distance.error << std::endl;
-
-                iterFlux << numeroPoint << std::endl;
-                iterFlux << study["iter"].number << std::endl;
-
-                initFlux << numeroPoint << std::endl;
-                initFlux << weightsInit[0](0,0).number << std::endl;
-                initFlux << biasInit[0](0).number << std::endl;
-            }
         }
 
         else
         {
             nonMin++;
-            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+            std::cout << "On n'est pas tombé sur un minimum" << i << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+            }
         }
 
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
+        }
     }
+
     for(i=0;i<4;i++)
     {
         if (proportions[i]!=0){distances[i]/=proportions[i]; iters[i]/=proportions[i];}
         proportions[i]/=Sdouble(nbTirage);
     }
+
     std::cout << "La proportion pour (-2,1): " << proportions[0] << std::endl;
     std::cout << "La distance moyenne à (-2,1): " << distances[0] << std::endl;
     std::cout << "Le nombre moyen d'itérations pour arriver à (-2,1): " << iters[0]<< std::endl;
@@ -245,16 +254,13 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
 void test_PolyFour(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
-    std::ofstream distanceFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"distance"+".csv").c_str());
     std::ofstream initFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !distanceFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
-    Sdouble distance;
-
+    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -306,39 +312,47 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
             numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
             if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
             else{iters[numeroPoint]+=study["iter"];}
-
-            if(record && numeroPoint>=0)
-            {
-                gradientNormFlux << numeroPoint << std::endl;
-                gradientNormFlux << study["finalGradient"].number << std::endl;
-                gradientNormFlux << study["finalGradient"].error << std::endl;
-
-                distance=(currentPoint-points[numeroPoint]).norm();
-                distanceFlux << numeroPoint << std::endl;
-                distanceFlux << distance.number << std::endl;
-                distanceFlux << distance.error << std::endl;
-
-                iterFlux << numeroPoint << std::endl;
-                iterFlux << study["iter"].number << std::endl;
-
-                initFlux << numeroPoint << std::endl;
-                initFlux << weightsInit[0](0,0).number << std::endl;
-                initFlux << biasInit[0](0).number << std::endl;
-            }
         }
 
         else
         {
             nonMin++;
-            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+            std::cout << "On n'est pas tombé sur un minimum" << i << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+            }
+        }
+
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
         }
 
     }
+
     for(i=0;i<4;i++)
     {
         if (proportions[i]!=0){distances[i]/=proportions[i]; iters[i]/=proportions[i];}
         proportions[i]/=Sdouble(nbTirage);
     }
+
     std::cout << "La proportion pour (-2,1): " << proportions[0] << std::endl;
     std::cout << "La distance moyenne à (-2,1): " << distances[0] << std::endl;
     std::cout << "Le nombre moyen d'itérations pour arriver à (-2,1): " << iters[0]<< std::endl;
@@ -367,16 +381,13 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
 void test_PolyFive(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
-    std::ofstream distanceFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"distance"+".csv").c_str());
     std::ofstream initFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !distanceFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
-    Sdouble distance;
-
+    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -429,41 +440,48 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
         {
             currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
             numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
-            if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
+            if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée: " << i << std::endl; farMin++;}
             else{iters[numeroPoint]+=study["iter"];}
-
-            if(record && numeroPoint>=0)
-            {
-                gradientNormFlux << numeroPoint << std::endl;
-                gradientNormFlux << study["finalGradient"].number << std::endl;
-                gradientNormFlux << study["finalGradient"].error << std::endl;
-
-                distance=(currentPoint-points[numeroPoint]).norm();
-                distanceFlux << numeroPoint << std::endl;
-                distanceFlux << distance.number << std::endl;
-                distanceFlux << distance.error << std::endl;
-
-                iterFlux << numeroPoint << std::endl;
-                iterFlux << study["iter"].number << std::endl;
-
-                initFlux << numeroPoint << std::endl;
-                initFlux << weightsInit[0](0,0).number << std::endl;
-                initFlux << biasInit[0](0).number << std::endl;
-            }
         }
 
         else
         {
             nonMin++;
-            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+            std::cout << "On n'est pas tombé sur un minimum: " << i << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+            }
         }
 
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
+        }
     }
+
     for(i=0;i<6;i++)
     {
         if (proportions[i]!=0){distances[i]/=proportions[i]; iters[i]/=proportions[i];}
         proportions[i]/=Sdouble(nbTirage);
     }
+
     std::cout << "La proportion pour (2,1): " << proportions[0] << std::endl;
     std::cout << "La distance moyenne à (2,1): " << distances[0] << std::endl;
     std::cout << "Le nombre moyen d'itérations pour arriver à (2,1): " << iters[0]<< std::endl;
@@ -502,16 +520,13 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
 void test_PolyEight(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
-    std::ofstream distanceFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"distance"+".csv").c_str());
     std::ofstream initFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !distanceFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
-    Sdouble distance;
-
+    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -564,41 +579,49 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
         {
             currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
             numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
-            if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
+            if(numeroPoint==-1){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée: " << i << std::endl; farMin++;}
             else{iters[numeroPoint]+=study["iter"];}
-
-            if(record && numeroPoint>=0)
-            {
-                gradientNormFlux << numeroPoint << std::endl;
-                gradientNormFlux << study["finalGradient"].number << std::endl;
-                gradientNormFlux << study["finalGradient"].error << std::endl;
-
-                distance=(currentPoint-points[numeroPoint]).norm();
-                distanceFlux << numeroPoint << std::endl;
-                distanceFlux << distance.number << std::endl;
-                distanceFlux << distance.error << std::endl;
-
-                iterFlux << numeroPoint << std::endl;
-                iterFlux << study["iter"].number << std::endl;
-
-                initFlux << numeroPoint << std::endl;
-                initFlux << weightsInit[0](0,0).number << std::endl;
-                initFlux << biasInit[0](0).number << std::endl;
-            }
         }
 
         else
         {
             nonMin++;
-            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+            std::cout << "On n'est pas tombé sur un minimum: " << i << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+            }
+        }
+
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
         }
 
     }
+
     for(i=0;i<6;i++)
     {
         if (proportions[i]!=0){distances[i]/=proportions[i]; iters[i]/=proportions[i];}
         proportions[i]/=Sdouble(nbTirage);
     }
+
     std::cout << "La proportion pour (0,0): " << proportions[0] << std::endl;
     std::cout << "La distance moyenne à (0,0): " << distances[0] << std::endl;
     std::cout << "Le nombre moyen d'itérations pour arriver à (0,0): " << iters[0]<< std::endl;
@@ -638,14 +661,12 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
 void test_Cloche(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
 {
     std::ofstream gradientNormFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
-    std::ofstream distanceFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"distance"+".csv").c_str());
     std::ofstream initFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !distanceFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
-    Sdouble distance;
+    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,3), Y(1,3);
     X(0,0)=0; X(0,1)=1; X(0,2)=2; Y(0,0)=1; Y(0,1)=0; Y(0,2)=1;
@@ -686,49 +707,53 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
 
-        if (std::abs(study["finalGradient"].error)>eps)
-        {
-            std::cout << i << ": " << study["finalGradient"].digits() << std::endl;
-        }
-
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
             currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
             numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
-            if(numeroPoint<0){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée" << std::endl; farMin++;}
-            iters[numeroPoint]+=study["iter"];
-
-            if(record && numeroPoint>=0)
-            {
-                gradientNormFlux << numeroPoint << std::endl;
-                gradientNormFlux << study["finalGradient"].number << std::endl;
-                gradientNormFlux << study["finalGradient"].error << std::endl;
-
-                distance=(currentPoint-points[numeroPoint]).norm();
-                distanceFlux << numeroPoint << std::endl;
-                distanceFlux << distance.number << std::endl;
-                distanceFlux << distance.error << std::endl;
-
-                iterFlux << numeroPoint << std::endl;
-                iterFlux << study["iter"].number << std::endl;
-
-                initFlux << numeroPoint << std::endl;
-                initFlux << weightsInit[0](0,0).number << std::endl;
-                initFlux << biasInit[0](0).number << std::endl;
-            }
+            if(numeroPoint==-1){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée: " << i << std::endl; farMin++;}
+            else{iters[numeroPoint]+=study["iter"];}
         }
-
         else
         {
             nonMin++;
-            std::cout << "On n'est pas tombé sur un minimum" << std::endl;
+            std::cout << "On n'est pas tombé sur un minimum: " << i << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+                std::cout << study["finalGradient"] << std::endl;
+            }
         }
+
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
+        }
+
     }
-    for(i=0;i<4;i++)
+
+    for(i=0;i<2;i++)
     {
         if (proportions[i]!=0){distances[i]/=proportions[i]; iters[i]/=proportions[i];}
         proportions[i]/=Sdouble(nbTirage);
     }
+
     std::cout << "La proportion pour (0,-z0): " << proportions[0] << std::endl;
     std::cout << "La distance moyenne à (0,-z0): " << distances[0] << std::endl;
     std::cout << "Le nombre moyen d'itérations pour arriver à (0,-z0): " << iters[0]<< std::endl;
@@ -742,5 +767,112 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const rec
     std::cout << "Proportion de fois où la condition sur le gradient n'est pas respectée: " << Sdouble(nonMin)/Sdouble(nbTirage) << std::endl;
     std::cout << "Proportion de fois où on n'est pas assez proche d'un minimum alors que la condition sur le gradient est respectée: " << Sdouble(farMin)/Sdouble(nbTirage) << std::endl;
 }
+
+void test_RatTwo(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
+Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+{
+    std::ofstream gradientNormFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
+    std::ofstream iterFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
+    std::ofstream initFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
+
+    Eigen::SMatrixXd X(1,2), Y(1,2);
+    X(0,0)=0; X(0,1)=1; Y(0,0)=1; Y(0,1)=1;
+    int const n0=X.rows(), nL=Y.rows();
+    int N=0;
+    int const L=1;
+    std::vector<int> nbNeurons(L+1);
+    std::vector<int> globalIndices(2*L);
+    std::vector<std::string> activations(L);
+    std::vector<Eigen::SMatrixXd> weights(L);
+    std::vector<Eigen::SVectorXd> bias(L);
+    std::vector<Eigen::SMatrixXd> weightsInit(L);
+    std::vector<Eigen::SVectorXd> biasInit(L);
+
+    //Architecture
+    int l;
+    nbNeurons[0]=n0;
+    nbNeurons[1]=nL;
+    activations[0]="ratTwo";
+    for(l=0;l<L;l++)
+    {
+        N+=nbNeurons[l]*nbNeurons[l+1]; globalIndices[2*l]=N; N+=nbNeurons[l+1]; globalIndices[2*l+1]=N;
+    }
+
+    int i; unsigned seed;
+    std::map<std::string,Sdouble> study;
+    Eigen::SVectorXd currentPoint(2);
+    std::vector<Eigen::SVectorXd> points(1);
+    std::vector<Sdouble> proportions(1,0.0), distances(1,0.0), iters(1,0.0);
+    int numeroPoint, nonMin=0, farMin=0;
+
+    points[0]=Eigen::SVectorXd::Zero(2);
+    points[0](0)=0; points[0](1)=(1+std::sqrt(5))/2;
+
+    for(i=0;i<nbTirage;i++)
+    {
+        seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
+        std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+
+        if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
+        {
+            currentPoint(0)=weights[0](0,0); currentPoint(1)=bias[0](0);
+            numeroPoint = proportion(currentPoint,points,proportions,distances,epsNeight);
+            if(numeroPoint==-1){std::cout << "On n'est pas assez proche du minimum même si la condition sur le gradient est respectée: " << i << std::endl; farMin++;}
+            else{iters[numeroPoint]+=study["iter"];}
+        }
+        else
+        {
+            nonMin++;
+            std::cout << "On n'est pas tombé sur un minimum: " << i << std::endl;
+
+            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            {
+                std::cout << "Divergence: " << i << std::endl;
+                numeroPoint = -3;
+            }
+            else
+            {
+                std::cout << "Non convergence ou précision: " << i << std::endl;
+                numeroPoint = -2;
+                std::cout << study["finalGradient"] << std::endl;
+            }
+        }
+
+        if(record)
+        {
+            gradientNormFlux << numeroPoint << std::endl;
+            gradientNormFlux << study["finalGradient"].number << std::endl;
+            gradientNormFlux << study["finalGradient"].error << std::endl;
+
+            iterFlux << numeroPoint << std::endl;
+            iterFlux << study["iter"].number << std::endl;
+
+            initFlux << numeroPoint << std::endl;
+            initFlux << weightsInit[0](0,0).number << std::endl;
+            initFlux << biasInit[0](0).number << std::endl;
+        }
+
+    }
+
+    if (proportions[0]!=0){distances[0]/=proportions[0]; iters[0]/=proportions[0];}
+    proportions[0]/=Sdouble(nbTirage);
+
+    std::cout << "La proportion pour (0,z2): " << proportions[0] << std::endl;
+    std::cout << "La distance moyenne à (0,z2): " << distances[0] << std::endl;
+    std::cout << "Le nombre moyen d'itérations pour arriver à (0,z2): " << iters[0]<< std::endl;
+    std::cout << "" << std::endl;
+
+
+    std::cout << "Proportion de fois où la condition sur le gradient n'est pas respectée: " << Sdouble(nonMin)/Sdouble(nbTirage) << std::endl;
+    std::cout << "Proportion de fois où on n'est pas assez proche d'un minimum alors que la condition sur le gradient est respectée: " << Sdouble(farMin)/Sdouble(nbTirage) << std::endl;
+}
+
+
+
 
 
