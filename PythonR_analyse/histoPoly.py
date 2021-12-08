@@ -24,10 +24,23 @@ def g(z,activation):
         return 2*z**3-3*z**2+5
     elif(activation=="polyFour"):
         return z**4-2*z**2+3
+    elif(activation=="polyFive"):
+        return z**5-4*z**4+2*z**3+8*z**2-11*z-12
+    elif(activation=="polyEight"):
+        return 35*z**8-360*z**7+1540*z**6-3528*z**5+4620*z**4-3360*z**3+1120*z**2+1
+    elif(activation == "cloche"):
+        return np.exp(-z**2/2)
+    elif(activation == "ratTwo"):
+        constante = 2/(3+np.sqrt(5))
+        return constante*(1+z**2)/(z**2-2*z+2)
 
 def cost(w,b,example):
-    if(example=="polyTwo" or example=="polyThree" or example=="polyFour"):
+    if(example=="polyTwo" or example=="polyThree" or example=="polyFour" or example=="polyFive" or example=="polyEight"):
         return 0.25*(g(w+b,example)**2+g(b,example)**2)
+    elif(example == "cloche"):
+        return -(np.log(g(b,example)) + np.log(1-g(w+b,example)) + np.log(g(2*w+b,example)) )/3
+    elif(example == "ratTwo"):
+        return -( np.log(g(b,example)) + np.log(g(w+b,example)) )/2
 
 def similarValue(val1,val1Error,val2,val2Error):
     if(val2-val2Error>val1+val1Error):
@@ -148,17 +161,18 @@ def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=2
     for nb in range(nbMins):
         initContent.append([[],[]])
 
-    fileGradContent=pd.read_csv(fileGrad,header=None).to_numpy()
-    fileDistanceContent=pd.read_csv(fileDistance,header=None).to_numpy()
-    fileIterContent=pd.read_csv(fileIter,header=None).to_numpy()
     fileInitContent=pd.read_csv(fileInit,header=None).to_numpy()
-    drawSucceed = fileGradContent.shape[0]//3
+    draw = fileInitContent.shape[0]//3
 
-    for i in range(drawSucceed):
-        nbPoint = int(fileGradContent[3*i][0])
-        initContent[nbPoint][0].append(fileInitContent[3*i+1][0]);initContent[nbPoint][1].append(fileInitContent[3*i+2][0]) 
+    for i in range(draw):
+        nbPoint = int(fileInitContent[3*i][0])
+        if(nbPoint>=0):
+            initContent[nbPoint][0].append(fileInitContent[3*i+1][0]);initContent[nbPoint][1].append(fileInitContent[3*i+2][0])
+        else:
+            initContent[-nbPoint+len(minIndices)-4][0].append(fileInitContent[3*i+1][0])
+            initContent[-nbPoint+len(minIndices)-4][1].append(fileInitContent[3*i+2][0])
 
-    W , B = np.meshgrid(np.linspace(limits[0],limits[1],drawSucceed//10),np.linspace(limits[2],limits[3],drawSucceed//10))
+    W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
     R = cost(W,B,example)
     R = np.ma.array(R, mask=np.any([R > 3], axis=0))
 
@@ -183,22 +197,67 @@ def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=2
     fig.show()
     plt.show()
 
+def tracking(fileTracking,minIndices):
+    nbMins = len(minIndices)-3
+    iterContent=[]; propContent=[]
+    for nb in range(nbMins):
+        iterContent.append([]); propContent.append([])
+    drawSucceed=0
+
+    fileTrackingContent=pd.read_csv(fileTracking,header=None).to_numpy()
+    draw = fileTrackingContent.shape[0]//3
+
+    for i in range(draw):
+        nbPoint = int(fileTrackingContent[3*i][0])
+        if(nbPoint>=0):
+            iterContent[nbPoint].append(fileTrackingContent[3*i+1][0])
+            propContent[nbPoint].append(fileTrackingContent[3*i+2][0])
+            drawSucceed+=1
+
+    lines = int(np.ceil(nbMins/2))
+
+    fig0,axes0 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
+    axes0 = axes0.flatten()
+    for nb in range(nbMins):
+        sns.histplot(propContent[nb], stat='density',ax=axes0[nb])
+        axes0[nb].set_title("Point: "+minIndices[nb])
+    fig0.suptitle("Lien entre minimum et condition entropique "+"("+str(drawSucceed)+" points)")
+
+    fig1,axes1 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
+    axes1 = axes1.flatten()
+    for nb in range(nbMins):
+        axes1[nb].plot(propContent[nb],iterContent[nb])
+        axes1[nb].set_title("Point: "+minIndices[nb])
+    fig1.suptitle("Lien entre nombre d'itérations et condition entropique "+"("+str(drawSucceed)+" points)")
+
+    fig0.show(); fig1.show()
+    plt.show()
+
+
 os.chdir("/home/bensaid/Documents/Anabase/NN_shaman")    
 
 example="polyTwo"
 limits=(-3,3,-3,3)
-nbIsolines=50
-minIndices=["(-2,1)","(2,-1)","(0,-1)","(0,1)"]
-colorPoints = ["blue","orange","gold","magenta"]
-algo="SGD"
-setHyperparameters="1-1"
+nbIsolines=10
+minIndices=["(-2,1)","(2,-1)","(0,-1)","(0,1)", "Eloigné", "Gradient faible", "Divergence"]
+colorPoints = ["blue","orange","gold","magenta", "gray", "forestgreen", "chocolate"]
+#minIndices = ["(2,1)", "(0,-1)", "(-2,3)", "(0,3)", "(-4,3)", "(4,-1)","Eloigné", "Gradient faible", "Divergence"]
+#colorPoints=["blue","orange","gold","red","magenta","black", "gray", "forestgreen", "chocolate"]
+#minIndices=["(0,-z0)","(0,z0)","Eloigné", "Gradient faible", "Divergence"]
+#colorPoints = ["blue","orange", "gray", "forestgreen", "chocolate"]
+#minIndices=["(0,z2)","Eloigné", "Gradient faible", "Divergence"]
+#colorPoints = ["orange", "gray", "forestgreen", "chocolate"]
+algo="LM_base"
+setHyperparameters="1"
 directory="Record/"+example+"/"+setHyperparameters+"/"+algo+"_"
 
 fileGrad=directory+"gradientNorm.csv"
 fileDistance=directory+"distance.csv"
 fileIter=directory+"iter.csv"
 fileInit=directory+"init.csv"
+fileTracking=directory+"tracking.csv"
 
-histos(fileGrad,fileDistance,fileIter,fileInit,minIndices,colorPoints)
+#histos(fileGrad,fileDistance,fileIter,fileInit,minIndices,colorPoints)
 #init(fileInit,minIndices,colorPoints,example,limits,nbIsolines)
+tracking(fileTracking,minIndices)
 
