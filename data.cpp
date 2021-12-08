@@ -1,5 +1,7 @@
 #include "data.h"
 
+//-------------------------------------------- Real defined functions ---------------------------------------------------------------------
+
 std::vector<Eigen::SMatrixXd> sineWave(int const& nbPoints)
 {
     std::vector<Eigen::SMatrixXd> data(2);
@@ -50,6 +52,46 @@ std::vector<Eigen::SMatrixXd> sinc1(int const& nbPoints)
     return data;
 }
 
+std::vector<Eigen::SMatrixXd> square(int const& nbPoints)
+{
+    std::vector<Eigen::SMatrixXd> data(2);
+    Eigen::SMatrixXd X(1,nbPoints);
+    Eigen::SMatrixXd Y(1,nbPoints);
+    X.row(0) = Eigen::SArrayXd::LinSpaced(nbPoints,-1,1);
+
+    data[0] = X;
+    data[1] = X.array().pow(2);
+
+    return data;
+}
+
+std::vector<Eigen::SMatrixXd> squareRoot(int const& nbPoints)
+{
+    std::vector<Eigen::SMatrixXd> data(2);
+    Eigen::SMatrixXd X(1,nbPoints);
+    Eigen::SMatrixXd Y(1,nbPoints);
+    X.row(0) = Eigen::SArrayXd::LinSpaced(nbPoints,0,2);
+
+    data[0] = X;
+    data[1] = X.array().sqrt();
+
+    return data;
+}
+
+std::vector<Eigen::SMatrixXd> exp(int const& nbPoints)
+{
+    std::vector<Eigen::SMatrixXd> data(2);
+    Eigen::SMatrixXd X(1,nbPoints);
+    Eigen::SMatrixXd Y(1,nbPoints);
+    X.row(0) = Eigen::SArrayXd::LinSpaced(nbPoints,-1,1);
+
+    data[0] = X;
+    data[1] = X.array().exp();
+
+    return data;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 std::vector<Eigen::SMatrixXd> sinc2(int const& nbPoints)
 {
@@ -105,6 +147,33 @@ std::vector<Eigen::SMatrixXd> exp2(int const& nbPoints)
     return data;
 }
 
+std::vector<Eigen::SMatrixXd> carreFunction2(int const& nbPoints)
+{
+    std::vector<Eigen::SMatrixXd> data(2);
+    Eigen::SMatrixXd X(2,nbPoints*nbPoints);
+    Eigen::SMatrixXd Y(2,nbPoints*nbPoints);
+    Eigen::SArrayXd points = Eigen::SArrayXd::LinSpaced(nbPoints,-1,1);
+    int i,j=0;
+    Sdouble norme;
+
+    while (j<nbPoints*nbPoints)
+    {
+        for (i=0;i<nbPoints;i++)
+        {
+            X(0,j) = points[j/nbPoints];
+            X(1,j) = points[i];
+            Y(0,j) = Sstd::pow(X(0,j),2);
+            Y(1,j) = Sstd::pow(X(1,j),2);
+            j++;
+        }
+    }
+
+    data[0] = X;
+    data[1] = Y;
+
+    return data;
+}
+
 std::vector<Eigen::SMatrixXd> twoSpiral(int const& nbPoints)
 {
     std::vector<Eigen::SMatrixXd> data(2);
@@ -134,13 +203,88 @@ std::vector<Eigen::SMatrixXd> twoSpiral(int const& nbPoints)
 
 }
 
-std::vector<Eigen::SMatrixXd> MNIST(std::string const& nameFileTrain, std::string const& nameFileTest)
+std::vector<Eigen::SMatrixXd> Boston(int const PTrain, int const PTest)
 {
-    std::ifstream fileTrain(("Data/"+nameFileTrain).c_str());
-    std::ifstream fileTest(("Data/"+nameFileTest).c_str());
+    std::ifstream fileTrainInputs("Data/boston_inputs_train.csv");
+    std::ifstream fileTrainOutputs("Data/boston_outputs_train.csv");
+    std::ifstream fileTestInputs("Data/boston_inputs_test.csv");
+    std::ifstream fileTestOutputs("Data/boston_outputs_test.csv");
 
-    Eigen::SMatrixXd XTrain(784,60000), XTest(784,10000);
-    Eigen::SMatrixXd YTrain = Eigen::SMatrixXd::Zero(10,60000), YTest = Eigen::SMatrixXd::Zero(10,10000);
+    Eigen::SMatrixXd XTrain(13,PTrain), XTest(13,PTest);
+    Eigen::SMatrixXd YTrain = Eigen::SMatrixXd::Zero(1,PTrain), YTest = Eigen::SMatrixXd::Zero(1,PTest);
+    std::vector<Eigen::SMatrixXd> data(4);
+
+    std::string line, subChaine;
+    std::stringstream ss(line);
+    int i=0,j=0;
+
+   if(fileTrainInputs && fileTrainOutputs)
+   {
+
+      while(getline(fileTrainInputs, line) && i<PTrain)
+      {
+            ss=(std::stringstream)line;
+            while (std::getline(ss, subChaine, ','))
+            {
+                XTrain(j,i)=Sdouble(strtod(subChaine.c_str(),NULL));
+                j++;
+            }
+            i++; j=0;
+      }
+
+      i=0;
+      while(getline(fileTrainOutputs, line) && i<PTrain)
+      {
+            YTrain(0,i)=Sdouble(strtod(line.c_str(),NULL));
+            i++;
+      }
+   }
+   else
+   {
+      std::cout << "ERREUR: Impossible d'ouvrir le fichier d'entraînement en lecture." << std::endl;
+   }
+
+   i=0;j=0;
+
+   if(fileTestInputs && fileTestOutputs)
+   {
+
+      while(getline(fileTestInputs, line) && i<PTest)
+      {
+            ss=(std::stringstream)line;
+            while (std::getline(ss, subChaine, ','))
+            {
+                XTest(j,i)=Sdouble(strtod(subChaine.c_str(),NULL));
+                j++;
+            }
+            i++; j=0;
+      }
+
+      i=0;
+      while(getline(fileTestOutputs, line) && i<PTest)
+      {
+            YTest(0,i)=Sdouble(strtod(line.c_str(),NULL));
+            i++;
+      }
+   }
+   else
+   {
+      std::cout << "ERREUR: Impossible d'ouvrir le fichier de test en lecture." << std::endl;
+   }
+
+   data[0]=XTrain; data[1]=YTrain; data[2]=XTest; data[3]=YTest;
+
+   return data;
+
+}
+
+std::vector<Eigen::SMatrixXd> MNIST(int const PTrain, int const PTest)
+{
+    std::ifstream fileTrain("Data/mnist_train.csv");
+    std::ifstream fileTest("Data/mnist_test.csv");
+
+    Eigen::SMatrixXd XTrain(784,PTrain), XTest(784,PTest);
+    Eigen::SMatrixXd YTrain = Eigen::SMatrixXd::Zero(10,PTrain), YTest = Eigen::SMatrixXd::Zero(10,PTest);
     std::vector<Eigen::SMatrixXd> data(4);
 
     std::string line, subChaine;
@@ -150,13 +294,13 @@ std::vector<Eigen::SMatrixXd> MNIST(std::string const& nameFileTrain, std::strin
    if(fileTrain)
    {
 
-      while(getline(fileTrain, line))
+      while(getline(fileTrain, line) && i<PTrain)
       {
             ss=(std::stringstream)line;
-            std::getline(ss, subChaine, ','); YTrain(i,strtol(subChaine.c_str(),NULL,10))=1;
+            std::getline(ss, subChaine, ','); YTrain(strtol(subChaine.c_str(),NULL,10), i)=1;
             while (std::getline(ss, subChaine, ','))
             {
-                XTrain(i,j)=Sdouble(strtol(subChaine.c_str(),NULL,10));
+                XTrain(j,i)=Sdouble(strtol(subChaine.c_str(),NULL,10))/255;
                 j++;
             }
             i++; j=0;
@@ -172,13 +316,13 @@ std::vector<Eigen::SMatrixXd> MNIST(std::string const& nameFileTrain, std::strin
    if(fileTest)
    {
 
-      while(getline(fileTest, line))
+      while(getline(fileTest, line) && i<PTest)
       {
             ss=(std::stringstream)line;
-            getline(ss, subChaine, ','); YTest(i,strtol(subChaine.c_str(),NULL,10))=1;
+            getline(ss, subChaine, ','); YTest(strtol(subChaine.c_str(),NULL,10),i)=1;
             while (std::getline(ss, subChaine, ','))
             {
-                XTest(i,j)=Sdouble(strtol(subChaine.c_str(),NULL,10));
+                XTest(j,i)=Sdouble(strtol(subChaine.c_str(),NULL,10))/255;
                 j++;
             }
             i++; j=0;
