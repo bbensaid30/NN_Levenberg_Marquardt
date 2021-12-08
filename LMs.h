@@ -13,10 +13,13 @@
 #include "shaman/helpers/shaman_eigen.h"
 
 #include "propagation.h"
+#include "scaling.h"
 #include "utilities.h"
 #include "eigenExtension.h"
-#include "scaling.h"
-#include "perte.h"
+
+std::map<std::string,Sdouble> LM_base(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& mu, Sdouble const& eps, int const& maxIter, bool const tracking=false, bool const record=false, std::string const fileExtension="");
 
 std::map<std::string,Sdouble> LM(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
@@ -61,7 +64,7 @@ std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weig
 Sdouble const& eps, int const& maxIter, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
 Sdouble const& tau, Sdouble const& beta, Sdouble const& gamma, int const& p,
-bool const record=false, std::string const fileExtension="");
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
 
 
 #endif

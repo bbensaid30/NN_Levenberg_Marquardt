@@ -24,6 +24,6 @@ std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weig
  std::string const& famille_algo, std::string const& algo,Sdouble const& eps, int const& maxIter, Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
 int const & batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
-bool const record=false, std::string const fileExtension="");
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
 
 #endif

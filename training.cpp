@@ -6,7 +6,7 @@ std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weig
 std::string const& famille_algo, std::string const& algo, Sdouble const& eps, int const& maxIter, Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
 int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
-bool const record, std::string const fileExtension)
+bool const tracking, bool const record, std::string const fileExtension)
 {
     std::map<std::string,Sdouble> study;
 
@@ -17,11 +17,11 @@ bool const record, std::string const fileExtension)
     else if(famille_algo=="LM")
     {
         study = train_LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,algo,eps,maxIter,mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,
-        alphaChap,epsDiag,0.1,2.0,3.0,3,record,fileExtension);
+        alphaChap,epsDiag,0.1,2.0,3.0,3,tracking,record,fileExtension);
     }
     else if(famille_algo=="Perso")
     {
-        study = train_Perso(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,algo,learning_rate,seuil,eps,maxIter,record,fileExtension);
+        study = train_Perso(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,algo,learning_rate,beta1,mu,seuil,eps,maxIter,record,fileExtension);
     }
 
     return study;

@@ -1,5 +1,87 @@
 #include "LMs.h"
 
+std::map<std::string,Sdouble> LM_base(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& mu,
+Sdouble const& eps, int const& maxIter, bool const tracking, bool const record, std::string const fileExtension)
+{
+    std::ofstream weightsFlux(("Record/weights_LM_base_"+fileExtension+".csv").c_str());
+    if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
+
+    Sdouble condition, prop_entropie=0;
+
+    int N=globalIndices[2*L-1], P=X.cols(), iter=0, l;
+
+    std::vector<Eigen::SMatrixXd> As(L+1); As[0]=X;
+    std::vector<Eigen::SMatrixXd> slopes(L);
+    Eigen::SVectorXd gradient = Eigen::SVectorXd::Zero(N);
+    Eigen::SMatrixXd Q = Eigen::SMatrixXd::Zero(N,N);
+    Eigen::SVectorXd delta(N);
+    Eigen::SMatrixXd I = Eigen::SMatrixXd::Identity(N,N);
+
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+    if(record)
+    {
+        for(l=0;l<L;l++)
+        {
+            weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+            weightsFlux << weights[l] << std::endl;
+            weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+            weightsFlux << bias[l] << std::endl;
+        }
+    }
+    solve(gradient,Q+mu*I,delta);
+
+    if(tracking)
+    {
+        condition = ((Q+mu*I).inverse()*gradient).dot(gradient);
+        if(condition>=0){prop_entropie+=1;}
+    }
+
+    Sdouble gradientNorm = gradient.norm();
+    while (gradientNorm+std::abs(gradientNorm.error)>eps && iter<maxIter)
+    {
+        update(L,nbNeurons,globalIndices,weights,bias,delta);
+
+        if(record)
+        {
+            for(l=0;l<L;l++)
+            {
+                weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
+                weightsFlux << weights[l] << std::endl;
+                weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
+                weightsFlux << bias[l] << std::endl;
+            }
+        }
+
+        fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+        QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+
+        gradientNorm = gradient.norm();
+        if(numericalNoise(gradientNorm)){break;}
+
+        solve(gradient,Q+mu*I,delta);
+
+        if(tracking)
+        {
+            condition = ((Q+mu*I).inverse()*gradient).dot(gradient);
+            if(condition>=0){prop_entropie+=1;}
+        }
+
+        iter++;
+    }
+
+    Sdouble cost = risk(Y,P,As[L],type_perte);
+
+    std::map<std::string,Sdouble> study;
+    study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost;
+
+    if(tracking){study["prop_entropie"]=prop_entropie/Sdouble(iter+1);}
+
+    return study;
+
+}
+
 std::map<std::string,Sdouble> LM(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble& mu, Sdouble& factor, Sdouble const& eps,
 int const& maxIter, bool const record, std::string const fileExtension)
@@ -27,9 +109,9 @@ int const& maxIter, bool const record, std::string const fileExtension)
 
 
     std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
     Sdouble cost = risk(Y,P,As[L],type_perte), costPrec;
-    QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+    QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
     H = Q+mu*I;
     if(record)
     {
@@ -49,7 +131,7 @@ int const& maxIter, bool const record, std::string const fileExtension)
     {
         update(L,nbNeurons,globalIndices,weights,bias,delta);
         costPrec=cost;
-        fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+        fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
         cost = risk(Y,P,As[L],type_perte);
 
         if(record)
@@ -68,10 +150,9 @@ int const& maxIter, bool const record, std::string const fileExtension)
         if (std::signbit((cost-costPrec).number))
         {
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
-            gradient.setZero(); Q.setZero();
             mu/=factor;
             notBack++;
-            QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+            QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
             gradientNorm = gradient.norm();
         }
         else
@@ -95,13 +176,9 @@ int const& maxIter, bool const record, std::string const fileExtension)
 
     if(record){muFlux << mu << std::endl;}
 
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    cost = risk(Y,P,As[L],type_perte);
-
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=Sdouble(endSequenceMax-notBackMax);
     study["endSequenceMax"]=Sdouble(endSequenceMax); study["startSequenceFinal"]=Sdouble(iter-notBack); study["propBack"]=Sdouble(nbBack)/Sdouble(iter);
-    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -135,9 +212,9 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
 
     std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
 
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
     Sdouble cost = risk(Y,P,As[L],type_perte), costPrec;
-    QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+    QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
     scalingFletcher(Q,D,N);
     H=Q+mu*D;
 
@@ -159,7 +236,7 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
     {
         update(L,nbNeurons,globalIndices,weights,bias,delta);
         costPrec = cost;
-        fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+        fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
         cost = risk(Y,P,As[L],type_perte);
         intermed = delta.transpose()*gradient;
         linearReduction = -delta.transpose()*Q*delta; linearReduction-=2*intermed;
@@ -205,7 +282,7 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
             std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
             gradient.setZero(); Q.setZero();
             notBack++;
-            QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+            QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
             gradientNorm = gradient.norm();
         }
         else
@@ -228,13 +305,9 @@ Sdouble const& RMin, Sdouble const& RMax, bool const record, std::string const f
 
     if(record){muFlux << mu << std::endl;}
 
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    cost = risk(Y,P,As[L],type_perte);
-
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
-    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -267,9 +340,9 @@ bool const record, std::string const fileExtension)
     std::vector<Eigen::SVectorXd> biasPrec(L);
 
     std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
     Sdouble cost = risk(Y,P,As[L],type_perte), costPrec;
-    QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+    QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
     mu=tau*Q.diagonal().maxCoeff();
     H = Q+mu*I;
 
@@ -291,7 +364,7 @@ bool const record, std::string const fileExtension)
     {
         update(L,nbNeurons,globalIndices,weights,bias,delta);
         costPrec = cost;
-        fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+        fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
         cost = risk(Y,P,As[L],type_perte);
         intermed = delta.transpose()*gradient;
         linearReduction = -delta.transpose()*Q*delta; linearReduction-=2*intermed;
@@ -316,7 +389,7 @@ bool const record, std::string const fileExtension)
             gradient.setZero(); Q.setZero();
             notBack++;
             mu*=maximum(1.0/gamma,1-(beta-1)*Sstd::pow(2*R-1,p));
-            QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+            QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
             gradientNorm = gradient.norm();
         }
         else
@@ -340,13 +413,9 @@ bool const record, std::string const fileExtension)
 
     if(record){muFlux << mu << std::endl;}
 
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    cost = risk(Y,P,As[L],type_perte);
-
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
-    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 }
@@ -380,9 +449,9 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
     std::vector<Eigen::SVectorXd> biasPrec(L);
 
     std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
     Sdouble cost = risk(Y,P,As[L],type_perte), costPrec; Sdouble costMin=cost;
-    QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+    QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
     scalingFletcher(Q,D,N);
     H = Q+mu*D;
 
@@ -407,7 +476,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
     {
         update(L,nbNeurons,globalIndices,weights,bias,delta);
         costPrec = cost;
-        fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+        fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
         cost = risk(Y,P,As[L],type_perte);
         intermed = delta.transpose()*gradient;
         linearReduction = -delta.transpose()*Q*delta; linearReduction-=2*intermed;
@@ -454,7 +523,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
             gradient.setZero(); Q.setZero();
             notBack++;
             costMin=minimum(costMin,cost);
-            QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+            QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
             gradientNorm = gradient.norm();
         }
         else
@@ -478,13 +547,9 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
 
     if(record){muFlux << mu << std::endl;}
 
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    cost = risk(Y,P,As[L],type_perte);
-
     std::map<std::string,Sdouble> study;
     study["iter"]=(Sdouble)iter; study["finalGradient"]=gradient.norm(); study["finalCost"]=cost; study["startSequenceMax"]=(Sdouble)(endSequenceMax-notBackMax);
     study["endSequenceMax"]=(Sdouble)endSequenceMax; study["startSequenceFinal"]=(Sdouble)(iter-notBack); study["propBack"]=(Sdouble)nbBack/(Sdouble)iter;
-    study["indexeProperValues"]=indexProperValues(Q);
 
     return study;
 
@@ -507,9 +572,9 @@ bool const record, std::string const fileExtension)
     Eigen::SMatrixXd Q = Eigen::SMatrixXd::Zero(N,N);
     Eigen::SVectorXd delta(N);
 
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
     Sdouble cost = risk(Y,P,As[L],type_perte);
-    QSO_backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
+    QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
     if(record)
     {
         for(l=0;l<L;l++)
@@ -533,11 +598,12 @@ std::map<std::string,Sdouble> train_LM(Eigen::SMatrixXd const& X, Eigen::SMatrix
 std::vector<std::string> const& activations,std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
 std::string const& algo, Sdouble const& eps, int const& maxIter, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag, Sdouble const& tau, Sdouble const& beta,
-Sdouble const& gamma, int const& p, bool const record, std::string const fileExtension)
+Sdouble const& gamma, int const& p, bool const tracking, bool const record, std::string const fileExtension)
 {
     std::map<std::string,Sdouble> study;
 
-    if(algo=="LM"){study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,mu,factor,eps,maxIter,record,fileExtension);}
+    if(algo=="LM_base"){study = LM_base(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,mu,eps,maxIter,tracking,record,fileExtension);}
+    else if(algo=="LM"){study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,mu,factor,eps,maxIter,record,fileExtension);}
     else if(algo=="LMF"){study = LMF(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,eps,maxIter,RMin,RMax,record,fileExtension);}
     else if(algo=="LMUphill"){study = LMUphill(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,eps,maxIter,RMin,RMax,b,record,fileExtension);}
     else if(algo=="LMNielson"){study = LMNielson(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,eps,maxIter,tau,beta,gamma,p,epsDiag,record,fileExtension);}
