@@ -1,17 +1,18 @@
 #include "test.h"
 
-
 void test_PolyTwo(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
     std::ofstream trackingFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
+    std::ofstream trackContinuousFlux(("Record/polyTwo/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -52,7 +53,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,
         learning_rate,seuil,beta1,beta2,batch_size,
-        mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking);
+        mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
@@ -91,11 +92,20 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << weightsInit[0](0,0).number << std::endl;
             initFlux << biasInit[0](0).number << std::endl;
         }
+
         if(tracking)
         {
             trackingFlux << numeroPoint << std::endl;
             trackingFlux << study["iter"].number << std::endl;
             trackingFlux << study["prop_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
         }
     }
 
@@ -133,12 +143,15 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 void test_PolyThree(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
     std::ofstream gradientNormFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
+    std::ofstream trackingFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    std::ofstream trackContinuousFlux(("Record/polyThree/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -177,7 +190,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
-        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking, track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
@@ -217,6 +230,21 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << weightsInit[0](0,0).number << std::endl;
             initFlux << biasInit[0](0).number << std::endl;
         }
+
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
+        }
     }
 
     for(i=0;i<4;i++)
@@ -254,13 +282,16 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 void test_PolyFour(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
+    std::ofstream trackingFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    std::ofstream trackContinuousFlux(("Record/polyFour/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -299,7 +330,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
-        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (std::abs(study["finalGradient"].error)>eps)
         {
@@ -345,6 +376,21 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << biasInit[0](0).number << std::endl;
         }
 
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
+        }
+
     }
 
     for(i=0;i<4;i++)
@@ -355,7 +401,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 
     std::cout << "La proportion pour (-2,1): " << proportions[0] << std::endl;
     std::cout << "La distance moyenne à (-2,1): " << distances[0] << std::endl;
-    std::cout << "Le nombre moyen d'itérations pour arriver à (-2,1): " << iters[0]<< std::endl;
+    std::cout << "Le nombre moyen d'itérations pour arriver à (-2,1): " << iters[0] << std::endl;
     std::cout << "" << std::endl;
 
     std::cout << "La proportion pour (2,-1): " << proportions[1] << std::endl;
@@ -381,13 +427,16 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 void test_PolyFive(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
+    std::ofstream trackingFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    std::ofstream trackContinuousFlux(("Record/polyFive/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -429,7 +478,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
-        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (std::abs(study["finalGradient"].error)>eps)
         {
@@ -474,6 +523,22 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << weightsInit[0](0,0).number << std::endl;
             initFlux << biasInit[0](0).number << std::endl;
         }
+
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
+        }
+
     }
 
     for(i=0;i<6;i++)
@@ -520,13 +585,16 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 void test_PolyEight(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
 
     std::ofstream gradientNormFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
+    std::ofstream trackingFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    std::ofstream trackContinuousFlux(("Record/polyEight/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=0; Y(0,1)=0;
@@ -568,7 +636,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
-        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (std::abs(study["finalGradient"].error)>eps)
         {
@@ -612,6 +680,21 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << numeroPoint << std::endl;
             initFlux << weightsInit[0](0,0).number << std::endl;
             initFlux << biasInit[0](0).number << std::endl;
+        }
+
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
         }
 
     }
@@ -661,12 +744,15 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 void test_Cloche(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
     std::ofstream gradientNormFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
+    std::ofstream trackingFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    std::ofstream trackContinuousFlux(("Record/cloche/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,3), Y(1,3);
     X(0,0)=0; X(0,1)=1; X(0,2)=2; Y(0,0)=1; Y(0,1)=0; Y(0,2)=1;
@@ -700,12 +786,13 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 
     points[0]=Eigen::SVectorXd::Zero(2); points[1]=Eigen::SVectorXd::Zero(2);
     points[0](0)=0; points[0](1)=-Sstd::sqrt(2*Sstd::log(Sdouble(3.0/2.0))); points[1](0)=0; points[1](1)=Sstd::sqrt(2*Sstd::log(Sdouble(3.0/2.0)));
+
     for(i=0;i<nbTirage;i++)
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
-        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
@@ -746,6 +833,21 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << biasInit[0](0).number << std::endl;
         }
 
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
     }
 
     for(i=0;i<2;i++)
@@ -771,12 +873,15 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
 void test_RatTwo(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
 Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
-Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tracking, bool const record, std::string const setHyperparameters)
+Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
+bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
 {
     std::ofstream gradientNormFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"gradientNorm"+".csv").c_str());
     std::ofstream iterFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"iter"+".csv").c_str());
     std::ofstream initFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"init"+".csv").c_str());
-    if(!gradientNormFlux || !iterFlux || !initFlux){std::cout << "Impossible d'ouvrir un des fichier en écriture" << std::endl;}
+    std::ofstream trackingFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"tracking"+".csv").c_str());
+    std::ofstream trackContinuousFlux(("Record/ratTwo/"+setHyperparameters+"/"+algo+"_"+"track_continuous"+".csv").c_str());
+    if(!gradientNormFlux || !iterFlux || !initFlux || !trackingFlux || !trackContinuousFlux){std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl;}
 
     Eigen::SMatrixXd X(1,2), Y(1,2);
     X(0,0)=0; X(0,1)=1; Y(0,0)=1; Y(0,1)=1;
@@ -816,7 +921,7 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
-        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag);
+        b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
         {
@@ -856,6 +961,22 @@ Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight, bool const tra
             initFlux << weightsInit[0](0,0).number << std::endl;
             initFlux << biasInit[0](0).number << std::endl;
         }
+
+        if(tracking)
+        {
+            trackingFlux << numeroPoint << std::endl;
+            trackingFlux << study["iter"].number << std::endl;
+            trackingFlux << study["prop_entropie"].number << std::endl;
+            trackingFlux << study["prop_initial_ineq"].number << std::endl;
+        }
+
+        if(track_continuous)
+        {
+            trackContinuousFlux << numeroPoint << std::endl;
+            trackContinuousFlux << study["iter"].number << std::endl;
+            trackContinuousFlux << study["continuous_entropie"].number << std::endl;
+        }
+
 
     }
 

@@ -2,12 +2,13 @@
 
 std::map<std::string,Sdouble> LM_base(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& mu,
-Sdouble const& eps, int const& maxIter, bool const tracking, bool const record, std::string const fileExtension)
+Sdouble const& eps, int const& maxIter,
+bool const tracking, bool const track_continuous, bool const record, std::string const fileExtension)
 {
     std::ofstream weightsFlux(("Record/weights_LM_base_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    Sdouble condition, prop_entropie=0;
+    Sdouble prop_entropie=0, prop_initial_ineq=0;
 
     int N=globalIndices[2*L-1], P=X.cols(), iter=0, l;
 
@@ -17,6 +18,8 @@ Sdouble const& eps, int const& maxIter, bool const tracking, bool const record, 
     Eigen::SMatrixXd Q = Eigen::SMatrixXd::Zero(N,N);
     Eigen::SVectorXd delta(N);
     Eigen::SMatrixXd I = Eigen::SMatrixXd::Identity(N,N);
+
+    Sdouble costInit, cost, costPrec;
 
     fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
     QSO_backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,Q,type_perte);
@@ -34,8 +37,8 @@ Sdouble const& eps, int const& maxIter, bool const tracking, bool const record, 
 
     if(tracking)
     {
-        condition = ((Q+mu*I).inverse()*gradient).dot(gradient);
-        if(condition>=0){prop_entropie+=1;}
+        cost = risk(Y,P,As[L],type_perte);
+        costInit = cost;
     }
 
     Sdouble gradientNorm = gradient.norm();
@@ -64,19 +67,21 @@ Sdouble const& eps, int const& maxIter, bool const tracking, bool const record, 
 
         if(tracking)
         {
-            condition = ((Q+mu*I).inverse()*gradient).dot(gradient);
-            if(condition>=0){prop_entropie+=1;}
+            costPrec = cost;
+            cost = risk(Y,P,As[L],type_perte);
+            if(std::signbit((cost-costPrec).number)){prop_entropie++;}
+            if(std::signbit((cost-costInit).number)){prop_initial_ineq++;}
         }
 
         iter++;
     }
 
-    Sdouble cost = risk(Y,P,As[L],type_perte);
+    cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost;
 
-    if(tracking){study["prop_entropie"]=prop_entropie/Sdouble(iter+1);}
+    if(tracking){study["prop_entropie"]=prop_entropie/Sdouble(iter); study["prop_initial_ineq"]=prop_initial_ineq/Sdouble(iter); }
 
     return study;
 
@@ -324,7 +329,7 @@ bool const record, std::string const fileExtension)
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
-    int N=globalIndices[2*L-1], P=X.cols(), iter=1, l;
+    int N=globalIndices[2*L-1], P=X.cols(), iter=0, l;
     int endSequence=0, endSequenceMax=0, notBack=1, notBackMax=0, nbBack=0;
 
     std::vector<Eigen::SMatrixXd> As(L+1); As[0]=X;
@@ -433,7 +438,7 @@ Sdouble const& RMin, Sdouble const& RMax, int const& b, bool const record, std::
     if(!weightsFlux || !costFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
 
-    int N=globalIndices[2*L-1], P=X.cols(), iter=1, l;
+    int N=globalIndices[2*L-1], P=X.cols(), iter=0, l;
     int endSequence=0, endSequenceMax=0, notBack=1, notBackMax=0, nbBack=0;
 
     std::vector<Eigen::SMatrixXd> As(L+1); As[0]=X;
@@ -598,11 +603,11 @@ std::map<std::string,Sdouble> train_LM(Eigen::SMatrixXd const& X, Eigen::SMatrix
 std::vector<std::string> const& activations,std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
 std::string const& algo, Sdouble const& eps, int const& maxIter, Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag, Sdouble const& tau, Sdouble const& beta,
-Sdouble const& gamma, int const& p, bool const tracking, bool const record, std::string const fileExtension)
+Sdouble const& gamma, int const& p, bool const tracking, bool const track_continuous, bool const record, std::string const fileExtension)
 {
     std::map<std::string,Sdouble> study;
 
-    if(algo=="LM_base"){study = LM_base(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,mu,eps,maxIter,tracking,record,fileExtension);}
+    if(algo=="LM_base"){study = LM_base(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,mu,eps,maxIter,tracking,track_continuous,record,fileExtension);}
     else if(algo=="LM"){study = LM(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,mu,factor,eps,maxIter,record,fileExtension);}
     else if(algo=="LMF"){study = LMF(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,eps,maxIter,RMin,RMax,record,fileExtension);}
     else if(algo=="LMUphill"){study = LMUphill(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,eps,maxIter,RMin,RMax,b,record,fileExtension);}

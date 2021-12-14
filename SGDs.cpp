@@ -2,13 +2,14 @@
 
 std::map<std::string,Sdouble> SGD(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate,
-int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record, std::string const fileExtension)
+int const& batch_size, Sdouble const& eps, int const& maxIter,
+bool const tracking, bool const record, std::string const fileExtension)
 {
 
     std::ofstream weightsFlux(("Record/weights_SGD_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -26,7 +27,8 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
     Eigen::SVectorXd gradient = Eigen::SVectorXd::Zero(N);
 
     Sdouble moyGradientNorm = 1000, sommeGradient;
-
+    Sdouble prop_entropie=0, prop_initial_ineq=0;
+    Sdouble costInit, cost, costPrec;
 
     while (moyGradientNorm+std::abs(moyGradientNorm.error)>eps && iter<maxIter)
     {
@@ -50,41 +52,51 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
+
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                if(tracking){cost = risk(Y,P,As[L],type_perte); costInit=cost;}
             }
 
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient);
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
 
+            if(tracking)
+            {
+                costPrec = cost;
+                cost = risk(Y,P,As[L],type_perte);
+                if(std::signbit((cost-costPrec).number)){prop_entropie++;}
+                if(std::signbit((cost-costInit).number)){prop_initial_ineq++;}
+            }
 
         }
+
         if (reste_batch!=0)
         {
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient);
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
         }
 
@@ -96,12 +108,13 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
-    Sdouble cost = risk(Y,P,As[L],type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost;
+    if(tracking){study["prop_entropie"] = prop_entropie/Sdouble(iter); study["prop_initial_ineq"] = prop_initial_ineq/Sdouble(iter);}
 
     return study;
 
@@ -115,7 +128,7 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
     std::ofstream weightsFlux(("Record/weights_SGD_Ito"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -158,19 +171,19 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             if (batch==0){update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient);}
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
 
         }
@@ -179,19 +192,19 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             if (batch==0){update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient);}
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
         }
 
@@ -203,8 +216,8 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
     Sdouble cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
@@ -216,13 +229,14 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
 
 std::map<std::string,Sdouble> Momentum(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate,
-int const& batch_size, Sdouble const& beta1, Sdouble const& eps, int const& maxIter, bool const record, std::string const fileExtension)
+int const& batch_size, Sdouble const& beta1, Sdouble const& eps, int const& maxIter,
+bool const tracking, bool const track_continuous, bool const record, std::string const fileExtension)
 {
 
     std::ofstream weightsFlux(("Record/weights_Momentum_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -242,7 +256,8 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& eps, int const& maxI
     Eigen::SVectorXd moment1 = Eigen::SVectorXd::Zero(N);
 
     Sdouble moyGradientNorm = 1000, sommeGradient;
-
+    Sdouble prop_entropie=0, condition, continuous_entropie=0, prop_initial_ineq=0;
+    Sdouble costInit, cost, costPrec;
 
     while (moyGradientNorm+std::abs(moyGradientNorm.error)>eps && iter<maxIter)
     {
@@ -266,44 +281,59 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& eps, int const& maxI
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                if(tracking){cost = risk(Y,P,As[L],type_perte); costInit=cost;}
             }
             moment1 = (1-beta1)*moment1 + beta1*gradient;
+            if(track_continuous)
+            {
+                condition = moment1.dot(gradient);
+                if(condition>=0){continuous_entropie++;}
+            }
 
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1);
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
 
+            if(tracking)
+            {
+                costPrec = cost;
+                cost = risk(Y,P,As[L],type_perte);
+                if(std::signbit((cost-costPrec).number)){prop_entropie++;}
+                if(std::signbit((cost-costInit).number)){prop_initial_ineq++;}
+            }
         }
+
         if (reste_batch!=0)
         {
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
             moment1 = (1-beta1)*moment1 + beta1*gradient;
 
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1);
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
         }
 
@@ -315,12 +345,14 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& eps, int const& maxI
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
-    Sdouble cost = risk(Y,P,As[L],type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost;
+    if(tracking){study["prop_entropie"] = prop_entropie/Sdouble(iter); study["prop_initial_ineq"] = prop_initial_ineq/Sdouble(iter);}
+    if(track_continuous){study["continuous_entropie"] = continuous_entropie/Sdouble(iter);}
 
     return study;
 
@@ -334,7 +366,7 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
     std::ofstream weightsFlux(("Record/weights_AdaGrad_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -378,20 +410,20 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             moment += gradient.array().pow(2);
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient.array()*((moment+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
         }
         if (reste_batch!=0)
@@ -399,21 +431,21 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             moment += gradient.array().pow(2);
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient.array()*((moment+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
         }
 
@@ -425,8 +457,8 @@ int const& batch_size, Sdouble const& eps, int const& maxIter, bool const record
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
     Sdouble cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
@@ -444,7 +476,7 @@ int const& batch_size, Sdouble const& beta2, Sdouble const& eps, int const& maxI
     std::ofstream weightsFlux(("Record/weights_RMSProp_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -488,21 +520,21 @@ int const& batch_size, Sdouble const& beta2, Sdouble const& eps, int const& maxI
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                 fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
             moment2 = (1-beta2)*moment2.array() + beta2*gradient.array().pow(2);
 
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient.array()*((moment2+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
 
             sommeGradient += gradient.squaredNorm();
         }
@@ -511,19 +543,19 @@ int const& batch_size, Sdouble const& beta2, Sdouble const& eps, int const& maxI
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
             moment2 = (1-beta2)*moment2.array() + beta2*gradient.array().pow(2);
 
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*gradient.array()*((moment2+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
 
             sommeGradient += gradient.norm();
         }
@@ -536,8 +568,8 @@ int const& batch_size, Sdouble const& beta2, Sdouble const& eps, int const& maxI
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
     Sdouble cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
@@ -555,7 +587,7 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
     std::ofstream weightsFlux(("Record/weights_Adam_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -577,7 +609,6 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
 
     Sdouble moyGradientNorm = 1000, sommeGradient;
 
-
     while (moyGradientNorm+std::abs(moyGradientNorm.error)>eps && iter<maxIter)
     {
         std::shuffle(indices.data(), indices.data()+P, eng);
@@ -589,9 +620,9 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
             for(l=0;l<L;l++)
             {
                 weights[l].resize(nbNeurons[l+1]*nbNeurons[l],1);
-                weightsFlux << weights[l] << std::endl;
+                weightsFlux << weights[l](0,0).number << std::endl;
                 weights[l].resize(nbNeurons[l+1],nbNeurons[l]);
-                weightsFlux << bias[l] << std::endl;
+                weightsFlux << bias[l](0).number << std::endl;
             }
         }
 
@@ -600,47 +631,48 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             moment1 = (1-beta1)*moment1 + beta1*gradient;
             moment2 = (1-beta2)*moment2.array() + beta2*gradient.array().pow(2);
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1.array()*((moment2+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
 
             sommeGradient += gradient.norm();
 
         }
+
         if (reste_batch!=0)
         {
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             moment1 = (1-beta1)*moment1 + beta1*gradient;
             moment2 = (1-beta2)*moment2.array() + beta2*gradient.array().pow(2);
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1.array()*((moment2+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
 
             sommeGradient += gradient.norm();
         }
@@ -653,8 +685,8 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
     Sdouble cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
@@ -669,10 +701,10 @@ std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weig
 int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const& eps, int const& maxIter, bool const record, std::string const fileExtension)
 {
 
-    std::ofstream weightsFlux(("Record/weights_Adam_"+fileExtension+".csv").c_str());
+    std::ofstream weightsFlux(("Record/weights_AMSGrad_"+fileExtension+".csv").c_str());
     if(!weightsFlux){std::cout << "Impossible d'ouvrir le fichier" << std::endl;}
 
-    int N=globalIndices[2*L-1], P=X.cols(), entries=X.rows(), iter=0, l, batch;
+    int N=globalIndices[2*L-1], P=X.cols(), entriesX=nbNeurons[0], entriesY=nbNeurons[L], iter=0, l, batch;
     assert(batch_size<=P);
     int const number_batch = P/batch_size,  reste_batch = P-batch_size*number_batch;
     int number_data = batch_size, indice_begin;
@@ -718,15 +750,15 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
         {
             indice_begin = batch*batch_size;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             moment1 = (1-beta1)*moment1 + beta1*gradient;
@@ -734,8 +766,8 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
             if(iter==0){max_moment2 = moment2;}
             else{max_moment2 = max_moment2.max(moment2);}
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1.array()*((max_moment2+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
 
         }
@@ -744,15 +776,15 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
             indice_begin = number_batch*batch_size;
             number_data = reste_batch;
 
-            echantillonX = X.block(0,indice_begin,entries,number_data);
-            echantillonY = Y.block(0,indice_begin,entries,number_data);
+            echantillonX = X.block(0,indice_begin,entriesX,number_data);
+            echantillonY = Y.block(0,indice_begin,entriesY,number_data);
 
             As[0]=echantillonX;
 
             if(iter==0)
             {
-                fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-                backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+                fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+                backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             }
 
             moment1 = (1-beta1)*moment1 + beta1*gradient;
@@ -760,8 +792,8 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
             if(iter==0){max_moment2 = moment2;}
             else{max_moment2 = max_moment2.max(moment2);}
             update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1.array()*((max_moment2+std::pow(10,-10)).rsqrt()));
-            fforward(echantillonX,echantillonY,L,number_data,nbNeurons,activations,weights,bias,As,slopes);
-            backward(echantillonX,echantillonY,L,number_data,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+            fforward(L,number_data,nbNeurons,activations,weights,bias,As,slopes);
+            backward(echantillonY,L,number_data,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
             sommeGradient += gradient.norm();
 
         }
@@ -774,8 +806,8 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
     }
 
     As[0]=X;
-    fforward(X,Y,L,P,nbNeurons,activations,weights,bias,As,slopes);
-    backward(X,Y,L,P,nbNeurons,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+    fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
     Sdouble cost = risk(Y,P,As[L],type_perte);
 
     std::map<std::string,Sdouble> study;
@@ -786,13 +818,14 @@ int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const
 
 std::map<std::string,Sdouble> train_SGD(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, std::string const& algo,
-Sdouble const& learning_rate, int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const& eps, int const& maxIter, bool const record, std::string const fileExtension)
+Sdouble const& learning_rate, int const& batch_size, Sdouble const& beta1, Sdouble const& beta2, Sdouble const& eps, int const& maxIter,
+bool const tracking, bool const track_continuous, bool const record, std::string const fileExtension)
 {
     std::map<std::string,Sdouble> study;
 
     if(algo=="SGD")
     {
-        study = SGD(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,learning_rate,batch_size,eps,maxIter,record,fileExtension);
+        study = SGD(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,learning_rate,batch_size,eps,maxIter,tracking,record,fileExtension);
     }
     else if(algo=="SGD_Ito")
     {
@@ -800,7 +833,7 @@ Sdouble const& learning_rate, int const& batch_size, Sdouble const& beta1, Sdoub
     }
     else if(algo=="Momentum")
     {
-        study = Momentum(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,learning_rate,batch_size,beta1,eps,maxIter,record,fileExtension);
+        study = Momentum(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,learning_rate,batch_size,beta1,eps,maxIter,tracking,track_continuous,record,fileExtension);
     }
     else if(algo=="AdaGrad")
     {
@@ -820,7 +853,7 @@ Sdouble const& learning_rate, int const& batch_size, Sdouble const& beta1, Sdoub
     }
     else
     {
-        study = SGD(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,learning_rate,batch_size,eps,maxIter,record,fileExtension);
+        study = SGD(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,type_perte,learning_rate,batch_size,eps,maxIter,record,tracking,fileExtension);
     }
 
     return study;
