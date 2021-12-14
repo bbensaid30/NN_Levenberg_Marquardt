@@ -97,7 +97,7 @@ def newCost(costs,costsError,cost,costError,nbByBins, properValues, properValue)
             properValues.append(properValue)
             
     
-def histoCost(fileCost, fileProperValues="", type="width", zoom=""):
+def histoCost(fileCost,):
     CostContent=[]; costs=[]; costsError=[]; nbByBins=[]; bins=[]; properValues=[]
     fileCostContent=pd.read_csv(fileCost,header=None).to_numpy()
     fileProperValuesContent=pd.read_csv(fileProperValues,header=None).to_numpy()
