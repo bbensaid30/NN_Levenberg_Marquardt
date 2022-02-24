@@ -69,8 +69,8 @@ bool const tracking, bool const track_continuous, bool const record, std::string
         {
             costPrec = cost;
             cost = risk(Y,P,As[L],type_perte);
-            if(std::signbit((cost-costPrec).number)){prop_entropie++;}
-            if(std::signbit((cost-costInit).number)){prop_initial_ineq++;}
+            if(!std::signbit((cost-costPrec).number)){prop_entropie++;}
+            if(!std::signbit((cost-costInit).number)){prop_initial_ineq++;}
         }
 
         iter++;

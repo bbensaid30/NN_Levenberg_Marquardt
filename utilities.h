@@ -15,8 +15,6 @@
 #include "eigenExtension.h"
 
 
-
-
 int proportion(Eigen::SVectorXd const& currentPoint, std::vector<Eigen::SVectorXd> const& points, std::vector<Sdouble>& proportions,  std::vector<Sdouble>& distances, Sdouble const& epsNeight);
 
 Sdouble mean(std::vector<Sdouble> const& values);
@@ -46,6 +44,8 @@ void readMatrix(std::ifstream& flux, Eigen::SMatrixXd& result, int const& nbRows
 void readVector(std::ifstream& flux, Eigen::SVectorXd& result, int const& nbRows);
 
 Sdouble indexProperValues(Eigen::SMatrixXd const& H);
+
+Sdouble expInv(Sdouble const& x);
 
 
 

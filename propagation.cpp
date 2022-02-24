@@ -2,7 +2,7 @@
 
 //------------------------------------------------------------------ Propagation directe ----------------------------------------------------------------------------------------
 
-void fforward(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
+void fforward(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
 std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes)
 {
     int l;
@@ -21,12 +21,14 @@ Sdouble risk(Eigen::SMatrixXd const& Y, int const& P, Eigen::SMatrixXd const& ou
     {
         cost+=L(Y.col(p),output_network.col(p),type_perte);
     }
+    cost/=(Sdouble)P;
     return cost;
 }
 
 //------------------------------------------------------------------ Rétropropagation ---------------------------------------------------------------------------------------------
 
-void backward(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
+void backward(Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
+std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
 std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SVectorXd& gradient, std::string const& type_perte)
 {
     int l,p,n,nL=nbNeurons[L],jump;
@@ -40,13 +42,30 @@ std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen:
     Eigen::SMatrixXd dw;
     Eigen::SVectorXd db;
 
+    #pragma omp parallel for private(LP)
     for(p=0; p<P; p++)
     {
         FO_L(Y.col(p),As[L].col(p),LP,type_perte);
         L_derivative.col(p)=LP;
     }
+    #pragma omp barrier
 
-    dzL = L_derivative.cwiseProduct(slopes[L-1]);
+    if(activations[L-1]=="softmax")
+    {
+        dzL.setZero();
+        Eigen::SMatrixXd ZL(nL,P);
+
+        ZL = slopes[L-1];
+
+        for(int r=0; r<nL; r++)
+        {
+            activation(activations[L-1],ZL,slopes[L-1],r);
+
+            dzL.row(r) = (L_derivative.cwiseProduct(slopes[L-1])).colwise().sum();
+        }
+
+    }
+    else{dzL = L_derivative.cwiseProduct(slopes[L-1]);}
 
     dz=dzL;
     jump=nbNeurons[L]*nbNeurons[L-1];
@@ -68,12 +87,14 @@ std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen:
         jump=nbNeurons[l];
         gradient.segment(globalIndices[2*(l-1)+1]-jump,jump)=db;
     }
+    gradient/=(Sdouble)P;
 }
 
 
 //Cas où L'' diagonale (la plupart du temps)
-void QSO_backward(Eigen::SMatrixXd const& X, Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SVectorXd& gradient, Eigen::SMatrixXd& Q, std::string const& type_perte)
+void QSO_backward(Eigen::SMatrixXd const& Y, int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations,
+std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes,
+Eigen::SVectorXd& gradient, Eigen::SMatrixXd& Q, std::string const& type_perte)
 {
     int l,m,p,n,nL=nbNeurons[L],jump;
     int N=globalIndices[2*L-1];
@@ -85,16 +106,36 @@ std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen:
     Eigen::SMatrixXd dw;
     Eigen::SVectorXd Jpm(N);
 
+    Eigen::SMatrixXd ZL(nL,P);
+    if(activations[L-1]=="softmax")
+    {
+        ZL = slopes[L-1];
+    }
+
+    gradient.setZero(); Q.setZero();
+
     for (p=0;p<P;p++)
     {
         SO_L(Y.col(p),As[L].col(p),LP,LPP,type_perte);
         for (m=0;m<nL;m++)
         {
-            for (n=0;n<nL;n++)
+            if(activations[L-1]=="softmax")
             {
-                dzL(n) = (n==m) ? -slopes[L-1](m,p) : 0;
+                for (n=0;n<nL;n++)
+                {
+                    if(m==n){dzL(n) = -As[L](m,p)*(1-As[L](m,p));}
+                    else{dzL(n) = Sstd::exp(ZL(n,p)-ZL(m,p))*Sstd::pow(As[L](m,p),2);}
+                }
+            }
+            else
+            {
+                for (n=0;n<nL;n++)
+                {
+                    dzL(n) = (n==m) ? -slopes[L-1](m,p) : 0;
+                }
             }
             dz=dzL;
+
             jump=nbNeurons[L]*nbNeurons[L-1];
             dw=dz*(As[L-1].col(p).transpose());
             dw.resize(jump,1);
@@ -116,11 +157,13 @@ std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen:
             gradient+=-LP(m)*Jpm;
         }
     }
+    Q/=(Sdouble)P;
+    gradient/=(Sdouble)P;
 
 }
 
-void QSO_backwardJacob(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& J)
+void QSO_backwardJacob(int const& L, int const& P, std::vector<int> const& nbNeurons, std::vector<std::string> const& activations, std::vector<int> const& globalIndices,
+std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen::SMatrixXd& J)
 {
     int l,m,p,n,nL=nbNeurons[L],jump,nbLine=0;
     int N=globalIndices[2*L-1];
@@ -130,15 +173,33 @@ std::vector<Eigen::SMatrixXd>& As, std::vector<Eigen::SMatrixXd>& slopes, Eigen:
     Eigen::SMatrixXd dw;
     Eigen::SVectorXd Jpm(N);
 
+    Eigen::SMatrixXd ZL(nL,P);
+    if(activations[L-1]=="softmax")
+    {
+        ZL = slopes[L-1];
+    }
+
     for (p=0;p<P;p++)
     {
         for (m=0;m<nL;m++)
         {
-            for (n=0;n<nL;n++)
+            if(activations[L-1]=="softmax")
             {
-                dzL(n) = (n==m) ? -slopes[L-1](m,p) : 0;
+                for (n=0;n<nL;n++)
+                {
+                    if(m==n){dzL(n) = -As[L](m,p)*(1-As[L](m,p));}
+                    else{dzL(n) = Sstd::exp(ZL(n,p)-ZL(m,p))*Sstd::pow(As[L](m,p),2);}
+                }
+            }
+            else
+            {
+                for (n=0;n<nL;n++)
+                {
+                    dzL(n) = (n==m) ? -slopes[L-1](m,p) : 0;
+                }
             }
             dz=dzL;
+
             jump=nbNeurons[L]*nbNeurons[L-1];
             dw=dz*(As[L-1].col(p).transpose());
             dw.resize(jump,1);

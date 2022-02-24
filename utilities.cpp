@@ -246,3 +246,17 @@ Sdouble indexProperValues(Eigen::SMatrixXd const& H)
     }
     return prop/taille;
 }
+
+
+Sdouble expInv(Sdouble const& x)
+{
+    Sdouble const eps = std::pow(10,-14);
+    if(Sstd::abs(x)<eps)
+    {
+        return 0;
+    }
+    else
+    {
+        return Sstd::exp(-1/(x*x));
+    }
+}

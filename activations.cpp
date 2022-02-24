@@ -11,13 +11,30 @@ void sigmoid(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
     S = Z.array()*(1-Z.array());
 }
 
-void softmax(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+void softmax(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q)
 {
-    Z = Z.array().exp();
-    Eigen::SVectorXd sumExp = Z.colwise().sum().cwiseInverse();
+    int const tailleX=Z.rows(), tailleY=Z.cols();
+    assert(q>=0); assert(q<tailleX);
+    Eigen::SMatrixXd A(tailleX,tailleY);
 
-    Z = Z * sumExp.asDiagonal();
-    S = Z.array()*(1-Z.array());
+    A = Z.array().exp();
+    Eigen::SVectorXd sumExp = A.colwise().sum().cwiseInverse();
+    A = A * sumExp.asDiagonal();
+
+    if(q==-1){S=Z;}
+    else
+    {
+        for(int r=0; r<tailleX; r++)
+        {
+            for(int p=0; p<tailleY; p++)
+            {
+                if (q==r){S(r,p) = A(r,p)*(1-A(r,p));}
+                else{S(r,p) = -Sstd::exp(Z(r,p)-Z(q,p))*Sstd::pow(A(q,p),2);}
+            }
+        }
+    }
+
+    Z=A;
 
 }
 
@@ -35,7 +52,7 @@ void reLU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
 }
 
 
-void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q)
 {
     if (nameActivation == "sigmoid")
     {
@@ -55,7 +72,7 @@ void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixX
     }
     else if(nameActivation == "softmax")
     {
-        softmax(Z,S);
+        softmax(Z,S,q);
     }
 
 

@@ -1,7 +1,8 @@
 #include "test.h"
 
 void test_PolyTwo(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -52,7 +53,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
         study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,
-        learning_rate,seuil,beta1,beta2,batch_size,
+        learning_rate,clip,seuil,beta1,beta2,batch_size,
         mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
@@ -141,7 +142,8 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 }
 
 void test_PolyThree(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -189,7 +191,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking, track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
@@ -280,7 +282,8 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 
 
 void test_PolyFour(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -329,7 +332,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (std::abs(study["finalGradient"].error)>eps)
@@ -425,7 +428,8 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 }
 
 void test_PolyFive(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -477,7 +481,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (std::abs(study["finalGradient"].error)>eps)
@@ -583,7 +587,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 }
 
 void test_PolyEight(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -635,7 +639,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"norme2",famille_algo,algo,eps,maxIter,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (std::abs(study["finalGradient"].error)>eps)
@@ -742,7 +746,8 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 
 
 void test_Cloche(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -791,7 +796,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)
@@ -871,7 +876,8 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 }
 
 void test_RatTwo(std::string const& distribution, std::vector<double> const& supParameters, int const& nbTirage, std::string const& famille_algo, std::string const& algo,
-Sdouble const& learning_rate, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2,
+int const& batch_size, Sdouble& mu, Sdouble& factor, Sdouble const& Rlim, Sdouble const& RMin,
 Sdouble const& RMax, Sdouble const& epsDiag, int const& b, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& alpha, Sdouble const& pas,
 Sdouble const& eps, int const& maxIter, Sdouble const& epsNeight,
 bool const tracking, bool const track_continuous, bool const record, std::string const setHyperparameters)
@@ -920,7 +926,7 @@ bool const tracking, bool const track_continuous, bool const record, std::string
     {
         seed=i; initialisation(nbNeurons,weights,bias,supParameters,distribution,seed);
         std::copy(weights.begin(),weights.end(),weightsInit.begin()); std::copy(bias.begin(),bias.end(),biasInit.begin());
-        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
+        study = train(X,Y,L,nbNeurons,globalIndices,activations,weights,bias,"entropie_one",famille_algo,algo,eps,maxIter,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,RMin,RMax,
         b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
 
         if (study["finalGradient"]+std::abs(study["finalGradient"].error)<eps)

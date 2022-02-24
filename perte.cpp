@@ -20,7 +20,7 @@ Sdouble entropie_generale(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y)
 Sdouble entropie_one(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y)
 {
     assert(x.rows()==1);
-    return x(0)*log(y(0))+(1-x(0))*log(1-y(0));
+    return -x(0)*Sstd::log(y(0))-(1-x(0))*Sstd::log(1-y(0));
 }
 
 Sdouble KL_divergence(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y)
@@ -58,7 +58,7 @@ void FO_entropie_generale(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, 
 void FO_entropie_one(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, Eigen::SVectorXd& LP)
 {
     assert(x.rows()==1);
-    LP(0)=x(0)/y(0)-(1-x(0))/(1-y(0));
+    LP = -x.array()/y.array()+(1-x.array())/(1-y.array());
 }
 
 void FO_KL_divergence(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, Eigen::SVectorXd& LP)
@@ -95,7 +95,7 @@ void SO_entropie_generale(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, 
 {
     int const taille = x.rows();
     LP=-x.cwiseProduct(y.cwiseInverse());
-    LPP.setZero();
+    LPP = Eigen::SMatrixXd::Zero(taille,taille);
     for(int i=0; i<taille; i++)
     {
         LPP(i,i) = x(i)/Sstd::pow(y(i),2);
@@ -104,14 +104,15 @@ void SO_entropie_generale(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, 
 void SO_entropie_one(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, Eigen::SVectorXd& LP, Eigen::SMatrixXd& LPP)
 {
     assert(x.rows()==1);
-    LP(0)=x(0)/y(0)-(1-x(0))/(1-y(0));
-    LPP(0,0)=-x(0)/Sstd::pow(y(0),2)-(1-x(0))/Sstd::pow(1-y(0),2);
+    LP = -x.array()/y.array()+(1-x.array())/(1-y.array());
+    LPP = x.array()/y.array().pow(2)+(1-x.array())/(1-y.array()).pow(2);
 }
+
 void SO_KL_divergence(Eigen::SVectorXd const& x, Eigen::SVectorXd const& y, Eigen::SVectorXd& LP, Eigen::SMatrixXd& LPP)
 {
     int const taille = x.rows();
     LP=-x.cwiseProduct(y.cwiseInverse());
-    LPP.setZero();
+    LPP = Eigen::SMatrixXd::Zero(taille,taille);
     for(int i=0; i<taille; i++)
     {
         LPP(i,i) = x(i)/Sstd::pow(y(i),2);

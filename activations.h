@@ -11,7 +11,7 @@
 //Activations classiques
 void linear(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 void sigmoid(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
-void softmax(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void softmax(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q=-1);
 void tanh(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 void reLU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 
@@ -31,7 +31,7 @@ void expFive(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
 void ratTwo(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, Sdouble c=0);
 void cloche(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 
-void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q=-1);
 
 #endif
 
