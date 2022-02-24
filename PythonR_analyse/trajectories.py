@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from numpy.lib.function_base import median
 import pandas as pd
@@ -32,9 +33,34 @@ def trajectoires(method,filesExtension,colors):
 
     plt.show()
 
+def profil(method,fileExtension=""):
+    fileGradientNorm = "Record/gradientNorm_"+method+"_"+fileExtension+".csv"
+    fileCost = "Record/cost_"+method+"_"+fileExtension+".csv"
+
+    fileGradientNormContent=pd.read_csv(fileGradientNorm,header=None).to_numpy()
+    fileCostContent=pd.read_csv(fileCost,header=None).to_numpy()
+    nbIters = fileCostContent.shape[0]
+
+    iters=[]; gNorms=[]; R=[]
+    for i in range(25):
+        iters.append(i)
+        gNorms.append(fileGradientNormContent[i][0])
+        R.append(fileCostContent[i][0])
+    plt.axhline(y=R[0],xmin=0,xmax=25,label="R0")
+
+    plt.xlabel("itérations")
+    plt.title("Evolution du coût et de la norme du gradient")
+    plt.plot(iters,gNorms,label="Norme du gradient", color="r")
+    plt.plot(iters,R,label="Coût",color="b")
+    plt.legend()
+    plt.show()
+
 os.chdir("/home/bensaid/Documents/Anabase/NN_shaman")   
 
 method="Adam"
 filesExtension=["(0.3,0.05)","(0.3,0.075)","(0.3,0.11)","(0.3,-0.15)"]
 colors=["gold","blue","magenta","orange"]
-trajectoires(method,filesExtension,colors)
+#trajectoires(method,filesExtension,colors)
+
+fileExtension="(-0.7,1.9)"
+profil(method,fileExtension)

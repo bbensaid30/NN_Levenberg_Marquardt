@@ -183,7 +183,7 @@ def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=2
 
     W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
     R = cost(W,B,example)
-    R = np.ma.array(R, mask=np.any([R > 3], axis=0))
+    R = np.ma.array(R, mask=np.any([R > 0.001], axis=0))
 
     fig = plt.figure(figsize=(10,10))
     #plt.gcf().subplots_adjust(0,0,1,1)
@@ -231,20 +231,25 @@ def tracking(fileTracking,minIndices):
     for nb in range(nbMins):
         if(identical(propContent[nb])):
             axes0[nb].axvline(x=propContent[nb][0],ymin=0,ymax=1)
-            axes0[nb].set_ylabel("Probability")
         else:
             sns.histplot(propContent[nb], stat='probability',ax=axes0[nb])
         axes0[nb].set_title("Point: "+minIndices[nb])
-        axes0[nb].set_xlabel("prop_entropie")
+        #axes0[nb].set_xlabel("prop_V")
+        axes0[nb].set_xlabel("prop_Em")
         #axes0[nb].set_xlabel("continuous_entropie")
-    fig0.suptitle("Lien entre minimum et condition entropique "+"("+str(drawSucceed)+" points)")
+        axes0[nb].set_ylabel("Probability")
+    #fig0.suptitle("Lien entre minimum et diminution de la fonction de Lyapunov "+"("+str(drawSucceed)+" points)")
+    fig0.suptitle("Lien entre minimum et énergie mécanique "+"("+str(drawSucceed)+" points)")
 
     fig1,axes1 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
     axes1 = axes1.flatten()
     for nb in range(nbMins):
-        axes1[nb].scatter(propContent[nb],iterContent[nb])
+        axes1[nb].scatter(iterContent[nb],propContent[nb])
         axes1[nb].set_title("Point: "+minIndices[nb])
-    fig1.suptitle("Lien entre nombre d'itérations et condition entropique "+"("+str(drawSucceed)+" points)")
+        axes1[nb].set_xlabel("iter")
+        axes1[nb].set_ylabel("prop_Em")
+    #fig1.suptitle("Lien entre nombre d'itérations et condition entropique "+"("+str(drawSucceed)+" points)")
+    fig1.suptitle("Lien entre nombre d'itérations et énergie mécanique "+"("+str(drawSucceed)+" points)")
 
     fig2,axes2 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
     axes2 = axes2.flatten()
@@ -254,8 +259,8 @@ def tracking(fileTracking,minIndices):
             axes2[nb].set_ylabel("Probability")
         else:
             sns.histplot(prop_initial_ineq[nb], stat='probability',ax=axes2[nb])
-        axes0[nb].set_title("Point: "+minIndices[nb])
-        axes0[nb].set_xlabel("initial_inequality")
+        axes2[nb].set_title("Point: "+minIndices[nb])
+        axes2[nb].set_xlabel("initial_inequality")
     fig2.suptitle("Lien entre minimum et connexité des sous-niveaux "+"("+str(drawSucceed)+" points)")
 
     verif_condition=0
@@ -267,7 +272,8 @@ def tracking(fileTracking,minIndices):
                 verif_condition+=1
             if(np.abs(prop_initial_ineq[nb][i]-1)<10**(-3)):
                 verif_ineq+=1
-    print("La proportion de trajectoires vérifiant la condition entropique est: ", verif_condition/drawSucceed)
+    #print("La proportion de trajectoires vérifiant la condition entropique est: ", verif_condition/drawSucceed)
+    print("La proportion de trajectoires vérifiant la diminution d'Em est: ", verif_condition/drawSucceed)
     print("La proportion de trajectoires vérifiant la condition 2 est: ", verif_ineq/drawSucceed)
 
     fig0.show(); fig1.show(); fig2.show()
@@ -276,9 +282,9 @@ def tracking(fileTracking,minIndices):
 
 os.chdir("/home/bensaid/Documents/Anabase/NN_shaman")    
 
-example="polyThree"
+example="polyTwo"
 limits=(-3,3,-3,3)
-nbIsolines=10
+nbIsolines=0
 minIndices=["(-2,1)","(2,-1)","(0,-1)","(0,1)", "Eloigné", "Gradient faible", "Divergence"]
 colorPoints = ["blue","orange","gold","magenta", "gray", "forestgreen", "chocolate"]
 #minIndices = ["(2,1)", "(0,-1)", "(-2,3)", "(0,3)", "(-4,3)", "(4,-1)","Eloigné", "Gradient faible", "Divergence"]
@@ -287,8 +293,8 @@ colorPoints = ["blue","orange","gold","magenta", "gray", "forestgreen", "chocola
 #colorPoints = ["blue","orange", "gray", "forestgreen", "chocolate"]
 #minIndices=["(0,z2)","Eloigné", "Gradient faible", "Divergence"]
 #colorPoints = ["orange", "gray", "forestgreen", "chocolate"]
-algo="Momentum"
-setHyperparameters="1-1"
+algo="Momentum_Euler"
+setHyperparameters="1"
 directory="Record/"+example+"/"+setHyperparameters+"/"+algo+"_"
 
 fileGrad=directory+"gradientNorm.csv"
