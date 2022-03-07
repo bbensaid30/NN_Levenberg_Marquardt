@@ -28,11 +28,11 @@ int main()
     std::vector<double> const supParameters={-3,3};
     int const tirageMin=0;
     int const nbTirages=10000;
-    std::string const famille_algo="SGD";
-    std::string const algo="Momentum_Euler";
+    std::string const famille_algo="Perso";
+    std::string const algo="Momentum_Em";
     Sdouble const eps=std::pow(10,-7);
-    int const maxIter=20000;
-    Sdouble const epsNeight=std::pow(10,-3);
+    int const maxIter=200000;
+    Sdouble const epsNeight=std::pow(10,-2);
 
     //Paramètres des méthodes LM
     Sdouble mu=100, factor=10, RMin=0.25, RMax=0.75, epsDiag=std::pow(10,-16), Rlim=std::pow(10,-4), factorMin=std::pow(10,-8), power=1.0, alphaChap=1.1, alpha=0.75, pas=0.1;
@@ -47,7 +47,7 @@ int main()
     int const batch_size = 2;
 
     std::string const setHyperparameters = "1";
-    test_PolyTwo(distribution,supParameters,nbTirages,famille_algo,algo,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,Rlim,RMin,RMax,
+    test_PolyThree(distribution,supParameters,nbTirages,famille_algo,algo,learning_rate,clip,seuil,beta1,beta2,batch_size,mu,factor,Rlim,RMin,RMax,
     epsDiag,b,factorMin,power,alphaChap,alpha,pas,eps,maxIter,epsNeight,true,false,true,setHyperparameters);
 
     return 0;

@@ -256,3 +256,21 @@ Eigen::SVectorXd const& delta)
     }
 
 }
+
+void updateNesterov(int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
+std::vector<Eigen::SMatrixXd>& weights2, std::vector<Eigen::SVectorXd>& bias2, Eigen::SVectorXd const& delta)
+{
+
+    int l, jump;
+
+    for (l=0;l<L;l++)
+    {
+        jump=nbNeurons[l]*nbNeurons[l+1];
+        weights[l].resize(jump,1); weights2[l].resize(jump,1);
+        weights[l] = weights2[l] + delta.segment(globalIndices[2*l]-jump,jump);
+        weights[l].resize(nbNeurons[l+1],nbNeurons[l]); weights2[l].resize(nbNeurons[l+1],nbNeurons[l]);
+        jump=nbNeurons[l+1];
+        bias[l] = bias2[l] + delta.segment(globalIndices[2*l+1]-jump,jump);
+    }
+
+}

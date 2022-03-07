@@ -8,11 +8,31 @@ from scipy.integrate import odeint
 Script sur la résolution du sytème pour GD pour l'exemple polyTwo
 """
 
-def g(z):
-    return z**2-1
+def g(z,nameActivation):
+    if nameActivation == "polyTwo":
+        return z**2-1
+    elif nameActivation == "polyThree":
+        return 2*z**3-3*z**2+5
+    elif nameActivation == "polyFour":
+        return z**4-2*z**2+3
+    elif nameActivation == "polyFive":
+        return z**5-4*z**4+2*z**3+8*z**2-11*z-12
+    elif nameActivation == "polyEight":
+        return 35*z**8-360*z**7+1540*z**6-3528*z**5+4620*z**4-3360*z**3+1120*z**2+1
 
-def gp(z):
-    return 2*z
+def gp(z,nameActivation):
+    if nameActivation == "polyTwo":
+        return 2*z
+    elif nameActivation == "polyThree":
+        return 6*z**2-6*z
+    elif nameActivation == "polyFour":
+        return 4*z**3-4*z
+    elif nameActivation == "polyFive":
+        return 5*z**4-16*z**3+6*z**2+16*z-11
+    elif nameActivation == "polyEight":
+        return 280*z**7-2520*z**6+9240*z**5-17640*z**4+18480*z**3-10080*z**2+2240*z
+
+
 
 
 def deriv(y,t,eta,dt):

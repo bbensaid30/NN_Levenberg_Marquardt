@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from os import name
 import numpy as np 
 import matplotlib.pyplot as plt
@@ -72,87 +70,28 @@ def quasiHessian(theta,nameActivation):
     Q[1,1] = Q[0,0]+gp(b,nameActivation)**2
     return 0.5*Q
 
-def sigma(theta,nameActivation):
-    w,b = theta[0,0],theta[1,0]
-    sigma = np.zeros((2,2))
-    sigma[0,0] = gp(w+b,nameActivation)*g(w+b,nameActivation)
-    sigma[1,0] = sigma[0,0]-gp(b,nameActivation)*g(b,nameActivation)
-    return 0.5*sigma
-
-def inequality(theta,nameActivation,b,eta_bar):
-    hessian = Hessian(theta,nameActivation)
-    sig = sigma(theta,nameActivation)
-    gradient = grad(theta,nameActivation)
-    gauche = np.trace(np.transpose(sig)*hessian*sig)
-    droite = np.linalg.norm(gradient)**2
-    print("Terme gauche: ", gauche)
-    print("Terme droite: ", droite)
-    if(gauche<droite):
-        print("Vérifié sans la constante")
-    else:
-        print("Constante nécessaire")
-    if(gauche<(2*b*droite)/eta_bar):
-        return True
-    else:
-        return False
-
-def Newton_Raphson(theta_n,x0,eta,nameActivation,epsSolver=10**(-8)):
+def Newton_Raphson(theta_n,grad_n,x0,eta,nameActivation,epsSolver=10**(-8)):
     I = np.identity(2)
     x=x0
-    G = theta_n-eta*grad(x,nameActivation)-x
+    G = theta_n-0.5*eta*(grad_n+grad(x,nameActivation))-x
     iter=0; maxIter=1000
     while(np.linalg.norm(G)>epsSolver and iter<maxIter):
         try:
-            delta = np.linalg.solve(eta*Hessian(x,nameActivation)+I,G)
+            delta = np.linalg.solve(0.5*eta*Hessian(x,nameActivation)+I,G)
         except np.linalg.LinAlgError:
             return x
         x+=delta
-        G = theta_n-eta*grad(x,nameActivation)-x
+        G = theta_n-eta/2*(grad_n+grad(x,nameActivation))-x
         iter+=1
     #print(iter)
     return x
 
-def LM_Raphson(theta_n,x0,eta,nameActivation,epsSolver=10**(-8)):
-    I = np.identity(2)
-    x=x0
-    G = theta_n-eta*grad(x,nameActivation)-x
-    iter=0; maxIter=1000
-    while(np.linalg.norm(G)>epsSolver and iter<maxIter):
-        try:
-            delta = np.linalg.solve(eta*quasiHessian(x,nameActivation)+I,G)
-        except np.linalg.LinAlgError:
-            return x
-        x+=delta
-        G = theta_n-eta*grad(x,nameActivation)-x
-        iter+=1
-    return x
-
-def Broyden(theta_n,x0,eta,nameActivation,epsSolver=10**(-8)):
-    I=np.identity(2)
-    B = I
-    x=x0
-    G = theta_n-eta*grad(x,nameActivation)-x
-    iter=0; maxIter=1000
-    while(np.linalg.norm(G)>epsSolver and iter<maxIter):
-        try:
-            delta = np.linalg.solve(B,-G)
-        except np.linalg.LinAlgError:
-            return x
-        x += delta
-        G0,G = G,theta_n-eta*grad(x,nameActivation)-x
-        if(np.linalg.norm(delta)<epsSolver):
-            break
-        #B += (delta-B*(G-G0))/(np.transpose(delta)*B*(G-G0))*(np.transpose(delta)*B)
-        B += (G-G0-B*delta)/(np.linalg.norm(delta)**2)*np.transpose(delta)
-        iter+=1
-    return x
-
-def euler_implicite_opti(theta0,eta,nameActivation,solver,eps=10**(-7),maxIter=2000):
+def crankNicholson_implicite_opti(theta0,eta,nameActivation,solver,eps=10**(-7),maxIter=2000):
     theta = theta0
     gradient = grad(theta,nameActivation)
     iter=0
     while(np.linalg.norm(gradient)>eps and iter<maxIter):
-        theta = solver(theta,theta,eta,nameActivation,eps*eta)
+        theta = solver(theta,gradient,theta,eta,nameActivation,eps*eta)
         gradient = grad(theta,nameActivation)
         iter+=1
     return theta,iter
@@ -169,43 +108,36 @@ def statistics(eta,nameActivation,solver,eps=10**(-7),maxIter=2000,epsNeight=10*
     if(nameActivation=="polyTwo" or nameActivation=="polyThree" or nameActivation=="polyFour"):
         nbMins=4
         thetas=[np.array([[-2],[1]]), np.array([[2],[-1]]), np.array([[0],[-1]]), np.array([[0],[1]])]
-        labels=["(-2,1)", "(2,-1)", "(0,-1)","(0,1)"]
+        labels=("(-2,1)", "(2,-1)", "(0,-1)","(0,1)")
         props=[0.0,0.0,0.0,0.0]; distances=[0.0,0.0,0.0,0.0]; iters=[0.0,0.0,0.0,0.0]
         ws = [[],[],[],[]]; bs = [[],[],[],[]]
         colors=["blue","orange","gold","magenta"]
     elif nameActivation == "polyFive":
         nbMins=6
         thetas=[np.array([[2],[1]]), np.array([[0],[-1]]), np.array([[-2],[3]]), np.array([[0],[3]]), np.array([[-4],[3]]), np.array([[4],[-1]])]
-        labels=["(2,1)", "(0,-1)", "(-2,3)","(0,3)", "(-4,3)", "(4,-1)"]
+        labels=("(2,1)", "(0,-1)", "(-2,3)","(0,3)", "(-4,3)", "(4,-1)")
         props=[0.0,0.0,0.0,0.0,0.0,0.0]; distances=[0.0,0.0,0.0,0.0,0.0,0.0]; iters=[0.0,0.0,0.0,0.0,0.0,0.0]
         ws = [[],[],[],[],[],[]]; bs = [[],[],[],[],[],[]]
         colors=["blue","orange","gold","red","magenta","black"]
     elif nameActivation == "polyEight":
         nbMins=6
         thetas=[np.array([[0],[0]]), np.array([[2],[0]]), np.array([[-2],[2]]), np.array([[1],[0]]), np.array([[-1],[1]]), np.array([[0],[2]])]
-        labels=["(0,0)", "(2,0)", "(-2,2)","(1,0)", "(-1,1)", "(0,2)"]
+        labels=("(0,0)", "(2,0)", "(-2,2)","(1,0)", "(-1,1)", "(0,2)")
         props=[0.0,0.0,0.0,0.0,0.0,0.0]; distances=[0.0,0.0,0.0,0.0,0.0,0.0]; iters=[0.0,0.0,0.0,0.0,0.0,0.0]
         ws = [[],[],[],[],[],[]]; bs = [[],[],[],[],[],[]]
         colors=["red","orange","gold","blue","magenta","black"]
     
-    for i in range(3):
-        ws.append([]); bs.append([])
-    labels.append("Eloigné"); labels.append("Gradient faible"); labels.append("Divergence")
-    colors.append("gray"); colors.append("forestgreen"); colors.append("chocolate")
-
     start = time.perf_counter()
     for nb in range(nbTirages):
         theta0 = np.random.uniform(intervals[0],intervals[1],size=(2,1))
         theta_init = np.copy(theta0)
-        theta,iter = euler_implicite_opti(theta0,eta,nameActivation,solver,eps)
+        theta,iter = crankNicholson_implicite_opti(theta0,eta,nameActivation,solver,eps)
         if(np.linalg.norm(grad(theta,nameActivation))<eps):
             nMin = distance(theta,thetas,epsNeight)
-            if(nMin==-1):
+            if(nMin<0):
                 print("On n'est pas assez proche du min: ", np.linalg.norm(thetas[nMin]-theta))
                 print("On est au tirage: ", nb)
                 farMin+=1
-                nMin=-1
-                ws[nbMins-nMin-1].append(theta_init[0,0]); bs[nbMins-nMin-1].append(theta_init[1,0])
             else:
                 ws[nMin].append(theta_init[0,0]); bs[nMin].append(theta_init[1,0])
                 props[nMin]+=1
@@ -215,13 +147,6 @@ def statistics(eta,nameActivation,solver,eps=10**(-7),maxIter=2000,epsNeight=10*
             print("La condition sur le gradient n'est pas respectée")
             print("On est au tirage: ", nb)
             nonMin+=1
-            if(np.linalg.norm(grad(theta,nameActivation))>1):
-                nMin=-3
-                ws[nbMins-nMin-1].append(theta_init[0,0]); bs[nbMins-nMin-1].append(theta_init[1,0])
-            else:
-                nMin=-2
-                ws[nbMins-nMin-1].append(theta_init[0,0]); bs[nbMins-nMin-1].append(theta_init[1,0])
-
     end = time.perf_counter()
     
     fig = plt.figure(figsize=(10,10))
@@ -236,17 +161,12 @@ def statistics(eta,nameActivation,solver,eps=10**(-7),maxIter=2000,epsNeight=10*
     axes.set_title("Ensemble des points d'initialisation convergeant vers un certain miminum")
 
     for min in range(nbMins):
-        if(props[min]==0):
-            distances[min]=0
-            iters[min]=0
-        else:
-            distances[min]/=props[min]
-            iters[min]/=props[min]
+        distances[min]/=props[min]
+        iters[min]/=props[min]
         props[min]/=nbTirages
         print("Proportion pour le point ", labels[min], " : ", props[min])
         print("Distance moyenne pour le point ", labels[min], " : ", distances[min])
         print("Nombre d'itérations moyenne pour le point ", labels[min], " : ", iters[min])
-    for min in range(nbMins+3):
         axes.scatter(ws[min], bs[min], color=colors[min], label=labels[min])
     
     print("Proportions de fois où la condition sur le gradient n'est pas respectée: ", nonMin/nbTirages)
@@ -261,18 +181,13 @@ def statistics(eta,nameActivation,solver,eps=10**(-7),maxIter=2000,epsNeight=10*
 
 theta0=np.array([[0.5],[0.5]])
 eta=0.1
-nameActivation="polyThree"
-solver = LM_Raphson
+nameActivation="polyEight"
+solver = Newton_Raphson
 eps=10**(-7)
 maxIter=20000
 epsNeight=10**(-3)
 nbTirages=10000
 intervals=(-3,3)
-#theta = euler_implicite_opti(theta0,eta,nameActivation,solver,eps,maxIter); print(theta)
-#statistics(eta,nameActivation,solver,eps,maxIter,epsNeight,nbTirages,intervals)
+#theta = crankNicholson_implicite_opti(theta0,eta,nameActivation,solver,eps,maxIter); print(theta)
 
-voisinage = 10**(-1)
-theta=np.array([[2+voisinage],[-1+voisinage]])
-b=1
-eta_bar=1
-print(inequality(theta,nameActivation,b,eta_bar))
+statistics(eta,nameActivation,solver,eps,maxIter,epsNeight,nbTirages,intervals)

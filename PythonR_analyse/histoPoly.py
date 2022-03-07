@@ -93,7 +93,7 @@ def histos(fileGrad,fileDistance,fileIter,fileInit,minIndices,colorPoints,limits
         initContent.append([[],[]])
 
     fileGradContent=pd.read_csv(fileGrad,header=None).to_numpy()
-    fileDistanceContent=pd.read_csv(fileDistance,header=None).to_numpy()
+    fileDistanceContent=pd.read_csv(fileGrad,header=None).to_numpy()
     fileIterContent=pd.read_csv(fileIter,header=None).to_numpy()
     fileInitContent=pd.read_csv(fileInit,header=None).to_numpy()
     drawSucceed = fileGradContent.shape[0]//3
@@ -207,10 +207,11 @@ def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=2
     plt.show()
 
 def tracking(fileTracking,minIndices):
-    nbMins = len(minIndices)-3
-    iterContent=[]; propContent=[]; prop_initial_ineq=[]
+    nbMins = len(minIndices)
+    props=[]; iterContent=[]; propContent=[]; prop_initial_ineq=[]
     for nb in range(nbMins):
         iterContent.append([]); propContent.append([]); prop_initial_ineq.append([])
+        props.append(0)
     drawSucceed=0
 
     fileTrackingContent=pd.read_csv(fileTracking,header=None).to_numpy()
@@ -222,46 +223,65 @@ def tracking(fileTracking,minIndices):
             iterContent[nbPoint].append(fileTrackingContent[4*i+1][0])
             propContent[nbPoint].append(fileTrackingContent[4*i+2][0])
             prop_initial_ineq[nbPoint].append(fileTrackingContent[4*i+3][0])
-            drawSucceed+=1
+            props[nbPoint]+=1; drawSucceed+=1
+        else:
+            iterContent[-nbPoint+len(minIndices)-4].append(fileTrackingContent[4*i+1][0])
+            propContent[-nbPoint+len(minIndices)-4].append(fileTrackingContent[4*i+2][0])
+            prop_initial_ineq[-nbPoint+len(minIndices)-4].append(fileTrackingContent[4*i+3][0])
+            props[-nbPoint+len(minIndices)-4]+=1
 
     lines = int(np.ceil(nbMins/2))
 
     fig0,axes0 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
+    plt.subplots_adjust(hspace=0.4)
     axes0 = axes0.flatten()
     for nb in range(nbMins):
         if(identical(propContent[nb])):
+            axes0[nb].set_xlim(-0.05,1.05)
             axes0[nb].axvline(x=propContent[nb][0],ymin=0,ymax=1)
         else:
             sns.histplot(propContent[nb], stat='probability',ax=axes0[nb])
-        axes0[nb].set_title("Point: "+minIndices[nb])
+        if(nb<=nbMins-4):
+            axes0[nb].set_title("Point: "+minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
+        else:
+            axes0[nb].set_title(minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
         #axes0[nb].set_xlabel("prop_V")
-        axes0[nb].set_xlabel("prop_Em")
+        axes0[nb].set_xlabel("prop_E")
         #axes0[nb].set_xlabel("continuous_entropie")
         axes0[nb].set_ylabel("Probability")
     #fig0.suptitle("Lien entre minimum et diminution de la fonction de Lyapunov "+"("+str(drawSucceed)+" points)")
-    fig0.suptitle("Lien entre minimum et énergie mécanique "+"("+str(drawSucceed)+" points)")
+    fig0.suptitle("Lien entre minimum et énergie ")
 
     fig1,axes1 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
+    plt.subplots_adjust(hspace=0.4)
     axes1 = axes1.flatten()
     for nb in range(nbMins):
         axes1[nb].scatter(iterContent[nb],propContent[nb])
-        axes1[nb].set_title("Point: "+minIndices[nb])
+        if(nb<=nbMins-4):
+            axes1[nb].set_title("Point: "+minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
+        else:
+            axes1[nb].set_title(minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
         axes1[nb].set_xlabel("iter")
         axes1[nb].set_ylabel("prop_Em")
     #fig1.suptitle("Lien entre nombre d'itérations et condition entropique "+"("+str(drawSucceed)+" points)")
-    fig1.suptitle("Lien entre nombre d'itérations et énergie mécanique "+"("+str(drawSucceed)+" points)")
+    fig1.suptitle("Lien entre nombre d'itérations et énergie mécanique "+"("+str(drawSucceed)+" points convergents)")
 
     fig2,axes2 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
+    plt.subplots_adjust(hspace=0.4)
     axes2 = axes2.flatten()
     for nb in range(nbMins):
         if(identical(prop_initial_ineq[nb])):
+            axes2[nb].set_xlim(-0.05,1.05)
             axes2[nb].axvline(x=prop_initial_ineq[nb][0],ymin=0,ymax=1)
-            axes2[nb].set_ylabel("Probability")
         else:
             sns.histplot(prop_initial_ineq[nb], stat='probability',ax=axes2[nb])
-        axes2[nb].set_title("Point: "+minIndices[nb])
+        if(nb<=nbMins-4):
+            axes2[nb].set_title("Point: "+minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
+        else:
+            axes2[nb].set_title(minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
         axes2[nb].set_xlabel("initial_inequality")
-    fig2.suptitle("Lien entre minimum et connexité des sous-niveaux "+"("+str(drawSucceed)+" points)")
+        axes2[nb].set_ylabel("Probability")
+    fig2.suptitle("Lien entre minimum et connexité des sous-niveaux "+"("+str(drawSucceed)+" points convergents)")
 
     verif_condition=0
     verif_ineq=0
@@ -273,8 +293,8 @@ def tracking(fileTracking,minIndices):
             if(np.abs(prop_initial_ineq[nb][i]-1)<10**(-3)):
                 verif_ineq+=1
     #print("La proportion de trajectoires vérifiant la condition entropique est: ", verif_condition/drawSucceed)
-    print("La proportion de trajectoires vérifiant la diminution d'Em est: ", verif_condition/drawSucceed)
-    print("La proportion de trajectoires vérifiant la condition 2 est: ", verif_ineq/drawSucceed)
+    print("La proportion de trajectoires vérifiant la diminution d'Em est: ", verif_condition/draw)
+    print("La proportion de trajectoires vérifiant la condition 2 est: ", verif_ineq/draw)
 
     fig0.show(); fig1.show(); fig2.show()
     plt.show()
@@ -282,7 +302,7 @@ def tracking(fileTracking,minIndices):
 
 os.chdir("/home/bensaid/Documents/Anabase/NN_shaman")    
 
-example="polyTwo"
+example="polyThree"
 limits=(-3,3,-3,3)
 nbIsolines=0
 minIndices=["(-2,1)","(2,-1)","(0,-1)","(0,1)", "Eloigné", "Gradient faible", "Divergence"]
@@ -293,7 +313,7 @@ colorPoints = ["blue","orange","gold","magenta", "gray", "forestgreen", "chocola
 #colorPoints = ["blue","orange", "gray", "forestgreen", "chocolate"]
 #minIndices=["(0,z2)","Eloigné", "Gradient faible", "Divergence"]
 #colorPoints = ["orange", "gray", "forestgreen", "chocolate"]
-algo="Momentum_Euler"
+algo="Momentum_Em"
 setHyperparameters="1"
 directory="Record/"+example+"/"+setHyperparameters+"/"+algo+"_"
 
@@ -304,7 +324,7 @@ fileInit=directory+"init.csv"
 fileTracking=directory+"tracking.csv"
 fileTrackingContinuous = directory+"track_continuous.csv"
 
-#histos(fileGrad,fileDistance,fileIter,fileInit,minIndices,colorPoints)
+histos(fileGrad,fileDistance,fileIter,fileInit,minIndices,colorPoints)
 #init(fileInit,minIndices,colorPoints,example,limits,nbIsolines)
-tracking(fileTracking,minIndices)
+#tracking(fileTracking,minIndices)
 
