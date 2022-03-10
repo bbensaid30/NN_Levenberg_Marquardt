@@ -258,7 +258,7 @@ Eigen::SVectorXd const& delta)
 }
 
 void updateNesterov(int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& weights2, std::vector<Eigen::SVectorXd>& bias2, Eigen::SVectorXd const& delta)
+std::vector<Eigen::SMatrixXd>& weights2, std::vector<Eigen::SVectorXd>& bias2, Eigen::SVectorXd const& delta, Sdouble const& lambda1, Sdouble const& lambda2)
 {
 
     int l, jump;
@@ -267,10 +267,10 @@ std::vector<Eigen::SMatrixXd>& weights2, std::vector<Eigen::SVectorXd>& bias2, E
     {
         jump=nbNeurons[l]*nbNeurons[l+1];
         weights[l].resize(jump,1); weights2[l].resize(jump,1);
-        weights[l] = weights2[l] + delta.segment(globalIndices[2*l]-jump,jump);
+        weights[l] = lambda1*weights2[l] + lambda2*delta.segment(globalIndices[2*l]-jump,jump);
         weights[l].resize(nbNeurons[l+1],nbNeurons[l]); weights2[l].resize(nbNeurons[l+1],nbNeurons[l]);
         jump=nbNeurons[l+1];
-        bias[l] = bias2[l] + delta.segment(globalIndices[2*l+1]-jump,jump);
+        bias[l] = lambda1*bias2[l] + lambda2*delta.segment(globalIndices[2*l+1]-jump,jump);
     }
 
 }

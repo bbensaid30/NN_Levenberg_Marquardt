@@ -152,6 +152,16 @@ std::vector<Eigen::SVectorXd> const& bias2, std::vector<Eigen::SMatrixXd>& weigh
     }
 }
 
+void nesterovCombination(std::vector<Eigen::SMatrixXd> const& weights1, std::vector<Eigen::SVectorXd> const& bias1, std::vector<Eigen::SMatrixXd> const& weights2,
+std::vector<Eigen::SVectorXd> const& bias2, std::vector<Eigen::SMatrixXd>& weightsInter, std::vector<Eigen::SVectorXd>& biasInter, int const& L, Sdouble const& lambda)
+{
+    for(int l=0;l<L;l++)
+    {
+        weightsInter[l]= weights1[l]+lambda*(weights1[l]-weights2[l]);
+        biasInter[l] = bias1[l]+lambda*(bias1[l]-bias2[l]);
+    }
+}
+
 void tabToVector(std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd> const& bias, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 Eigen::SVectorXd& point)
 {

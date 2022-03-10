@@ -312,18 +312,69 @@ bool const tracking, bool const track_continuous, bool const record, std::string
 
     std::vector<Eigen::SMatrixXd> As(L+1); As[0]=X;
     std::vector<Eigen::SMatrixXd> slopes(L);
-    Eigen::SVectorXd gradient = Eigen::SVectorXd::Zero(N);
-    Eigen::SVectorXd moment1 = Eigen::SVectorXd::Zero(N), moment1Prec(N);
+    Eigen::SVectorXd gradient = Eigen::SVectorXd::Zero(N), gradientInter = Eigen::SVectorXd::Zero(N);
+    Eigen::SVectorXd moment1 = Eigen::SVectorXd::Zero(N), moment1Prec(N), theta0(N), theta1(N), theta2(N);
 
     Sdouble gradientNorm=1000;
     Sdouble Em_count=0,condition, continuous_entropie=0, prop_initial_ineq=0;
-    Sdouble EmPrec,Em,cost,costInit;
+    Sdouble EmPrec,Em,cost,costPrec;
 
-    std::vector<Eigen::SMatrixXd> weightsPrec(L);
-    std::vector<Eigen::SVectorXd> biasPrec(L);
+    std::vector<Eigen::SMatrixXd> weightsInter(L), weightsPrec(L);
+    std::vector<Eigen::SVectorXd> biasInter(L), biasPrec(L);
     Sdouble learning_rate = learning_rate_init, beta1 = beta1_init;
-    Sdouble seuil=0.0, factor1=2.0, factor2=2.0;
 
+    tabToVector(weights,bias,L,nbNeurons,globalIndices,theta0);
+    for(int i=0; i<2; i++)
+    {
+        std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
+        moment1Prec = moment1;
+        fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+        cost = risk(Y,P,As[L],type_perte);
+        Em = 0.5*moment1.squaredNorm()+beta_bar*cost;
+        backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+
+        do
+        {
+            std::copy(weights.begin(),weights.end(),weightsInter.begin()); std::copy(bias.begin(),bias.end(),biasInter.begin());
+            update(L,nbNeurons,globalIndices,weights,bias,0.5*learning_rate*(2-beta1)*moment1-0.5*learning_rate*beta1*gradient);
+
+            update(L,nbNeurons,globalIndices,weightsInter,biasInter,learning_rate*moment1);
+            fforward(L,P,nbNeurons,activations,weightsInter,biasInter,As,slopes);
+            backward(Y,L,P,nbNeurons,activations,globalIndices,weightsInter,biasInter,As,slopes,gradientInter,type_perte);
+            moment1 += -0.5*beta1*(2-beta1)*moment1 - 0.5*beta1*(1-beta1)*gradient - 0.5*beta1*gradientInter;
+
+            fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
+            cost = risk(Y,P,As[L],type_perte);
+            EmPrec = Em; Em = 0.5*moment1.squaredNorm()+beta_bar*cost;
+            backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+
+            if(Em-EmPrec>0)
+            {
+                std::copy(weightsPrec.begin(),weightsPrec.end(),weights.begin()); std::copy(biasPrec.begin(),biasPrec.end(),bias.begin());
+                moment1 = moment1Prec;
+                learning_rate/=2; beta1/=2;
+            }
+            iter++;
+
+        }while(Em-EmPrec>0);
+
+        if(i==0)
+        {
+            tabToVector(weights,bias,L,nbNeurons,globalIndices,theta1);
+            costPrec = cost;
+            //std::cout << learning_rate << std::endl;
+        }
+        if(i==1)
+        {
+            tabToVector(weights,bias,L,nbNeurons,globalIndices,theta2);
+        }
+    }
+
+    //std::cout << learning_rate << std::endl;
+    updateNesterov(L,nbNeurons,globalIndices,weightsInter,biasInter,weights,bias,theta1,0.5,0.5);
+    fforward(L,P,nbNeurons,activations,weightsInter,biasInter,As,slopes);
+    backward(Y,L,P,nbNeurons,activations,globalIndices,weightsInter,biasInter,As,slopes,gradientInter,type_perte);
+    gradientNorm = gradientInter.norm();
     while (gradientNorm+std::abs(gradientNorm.error)>eps && iter<maxIter)
     {
         if(record)
@@ -338,59 +389,29 @@ bool const tracking, bool const track_continuous, bool const record, std::string
         }
 
 
-        if(iter==0)
-        {
-            fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
-            backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
+        update(L,nbNeurons,globalIndices,weights,bias,theta1-theta0-2*beta1*(theta2-theta1)-2*learning_rate*beta1*(cost-costPrec)*(theta2-theta1)/(theta2-theta1).squaredNorm()
+        -2*learning_rate*beta1*(gradientInter-(gradientInter.dot(theta2-theta1)/(theta2-theta1).squaredNorm())*(theta2-theta1)));
 
-            cost = risk(Y,P,As[L],type_perte); costInit = cost;
-            Em = beta_bar*cost;
-        }
+        theta0=theta1;
+        theta1=theta2;
+        tabToVector(weights,bias,L,nbNeurons,globalIndices,theta2);
+        costPrec = cost;
 
-        moment1Prec=moment1; std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
-        moment1 = (1-beta1)*moment1 + beta1*gradient;
-        update(L,nbNeurons,globalIndices,weights,bias,-learning_rate*moment1);
+        updateNesterov(L,nbNeurons,globalIndices,weightsInter,biasInter,weights,bias,theta1,0.5,0.5);
+        fforward(L,P,nbNeurons,activations,weightsInter,biasInter,As,slopes);
+        backward(Y,L,P,nbNeurons,activations,globalIndices,weightsInter,biasInter,As,slopes,gradientInter,type_perte);
+        gradientNorm = gradientInter.norm();
 
         fforward(L,P,nbNeurons,activations,weights,bias,As,slopes);
-
         cost = risk(Y,P,As[L],type_perte);
-        EmPrec = Em; Em = 0.5*moment1.squaredNorm()+beta_bar*cost;
 
-        if((Em-EmPrec)/EmPrec>seuil)
-        {
-            moment1=moment1Prec; std::copy(weightsPrec.begin(),weightsPrec.end(),weights.begin()); std::copy(biasPrec.begin(),biasPrec.end(),bias.begin());
-            Em = EmPrec;
-            learning_rate/=factor1; beta1/=factor1;
-        }
-        else if(Em-EmPrec<0)
-        {
-            backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
-            gradientNorm = gradient.norm();
-            learning_rate*=factor2; beta1*=factor2;
-        }
-        else
-        {
-            backward(Y,L,P,nbNeurons,activations,globalIndices,weights,bias,As,slopes,gradient,type_perte);
-            gradientNorm = gradient.norm();
-        }
-
-        if(Em-EmPrec>0)
-        {
-            Em_count+=1;
-        }
-        if(cost-costInit>0)
-        {
-            prop_initial_ineq+=1;
-        }
+        std::cout << weights[0] << std::endl; std::cout << bias[0] << std::endl;
 
         iter++;
         if(numericalNoise(gradientNorm)){break;}
 
     }
 
-
-    std::cout << "eta: " << learning_rate << std::endl;
-    std::cout << "beta: " << beta1 << std::endl;
 
     std::map<std::string,Sdouble> study;
     study["iter"]=Sdouble(iter); study["finalGradient"]=gradient.norm(); study["finalCost"]=cost;
@@ -451,7 +472,7 @@ Sdouble const& eps, int const& maxIter, bool const tracking, bool const track_co
         }
 
         std::copy(weights.begin(),weights.end(),weightsPrec.begin()); std::copy(bias.begin(),bias.end(),biasPrec.begin());
-        updateNesterov(L,nbNeurons,globalIndices,weights,bias,weightsY,biasY,-learning_rate*gradientY);
+        updateNesterov(L,nbNeurons,globalIndices,weights,bias,weightsY,biasY,-learning_rate*gradientY,1,1);
         nesterovCombination(weights,bias,weightsPrec,biasPrec,weightsY,biasY,L,iter/(iter+3));
 
         fforward(L,P,nbNeurons,activations,weightsY,biasY,As,slopes);

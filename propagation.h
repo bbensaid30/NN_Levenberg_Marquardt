@@ -46,6 +46,6 @@ void update(int const& L, std::vector<int> const& nbNeurons, std::vector<int> co
 Eigen::SVectorXd const& delta);
 
 void updateNesterov(int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias,
-std::vector<Eigen::SMatrixXd>& weights2, std::vector<Eigen::SVectorXd>& bias2, Eigen::SVectorXd const& delta);
+std::vector<Eigen::SMatrixXd>& weights2, std::vector<Eigen::SVectorXd>& bias2, Eigen::SVectorXd const& delta, Sdouble const& lambda1, Sdouble const& lambda2);
 
 #endif
