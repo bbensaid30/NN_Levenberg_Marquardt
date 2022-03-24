@@ -19,7 +19,14 @@
 #include "eigenExtension.h"
 #include "utilities.h"
 
+#include "cubic.h"
+
 std::map<std::string,Sdouble> EulerRichardson(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& seuil, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> ER_Em(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
 Sdouble const& learning_rate_init, Sdouble const& seuil, Sdouble const& eps, int const& maxIter,
 bool const tracking=false, bool const record=false, std::string const fileExtension="");
@@ -37,6 +44,16 @@ bool const tracking=false, bool const track_continuous=false, bool const record=
 std::map<std::string,Sdouble> Momentum_Verlet(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate,
 Sdouble const& beta1, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const track_continuous=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> RK2Momentum(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate,
+Sdouble const& beta1, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const track_continuous=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> GD_Em(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate_init,
+Sdouble const& eps, int const& maxIter,
 bool const tracking=false, bool const track_continuous=false, bool const record=false, std::string const fileExtension="");
 
 std::map<std::string,Sdouble> Momentum_Em(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
