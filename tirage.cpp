@@ -1,57 +1,137 @@
 #include "tirage.h"
 
-std::vector<std::map<std::string,Sdouble>> tirages(std::vector<Eigen::SMatrixXd>& data, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::map<std::string,Sdouble>> tiragesRegression(std::vector<Eigen::SMatrixXd>& data, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::string const& type_perte,
 std::string const& famille_algo, std::string const& algo, std::vector<double> const& supParameters, std::string const& generator,
 int const& tirageMin, int const& nbTirages, Sdouble const& eps, int const& maxIter,
 Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const & batch_size,
 Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
 Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
-bool const tracking, bool const track_continuous)
+bool const tracking)
 {
     int const PTest = data[2].cols();
 
-    std::vector<Eigen::SMatrixXd> weights(L);
-    std::vector<Eigen::SVectorXd> bias(L);
-    std::vector<Eigen::SMatrixXd> AsTest(L+1);
-    AsTest[0]=data[2];
-    std::vector<Eigen::SMatrixXd> slopes(L);
-
-    Sdouble costTest;
-
     int const tirageMax=tirageMin+nbTirages;
 
-    int i;
     std::vector<std::map<std::string,Sdouble>> studies(nbTirages);
 
-    for(i=0;i<nbTirages;i++)
+
+    #pragma omp parallel
     {
+        std::vector<Eigen::SMatrixXd> weights(L);
+        std::vector<Eigen::SVectorXd> bias(L);
+        std::vector<Eigen::SMatrixXd> AsTest(L+1);
+        AsTest[0]=data[2];
+        std::vector<Eigen::SMatrixXd> slopes(L);
+        Sdouble costTest;
 
-        initialisation(nbNeurons,weights,bias,supParameters,generator,i);
+        #pragma omp for
+        for(int i=tirageMin;i<tirageMax;i++)
+        {
+            initialisation(nbNeurons,weights,bias,supParameters,generator,i);
+            studies[i] = train(data[0],data[1],L,nbNeurons,globalIndices,activations,weights,bias,type_perte,famille_algo,algo,eps,maxIter,
+            learning_rate,clip,seuil,beta1,beta2,batch_size,
+            mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking);
 
-        studies[i] = train(data[0],data[1],L,nbNeurons,globalIndices,activations,weights,bias,type_perte,famille_algo,algo,eps,maxIter,
-        learning_rate,clip,seuil,beta1,beta2,batch_size,
-        mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking,track_continuous);
+            fforward(L,PTest,nbNeurons,activations,weights,bias,AsTest,slopes);
+            costTest = risk(data[3],PTest,AsTest[L],type_perte);
+            studies[i]["cost_test"] = costTest;
+            studies[i]["num_tirage"] = i;
 
-        fforward(L,PTest,nbNeurons,activations,weights,bias,AsTest,slopes);
-        costTest = risk(data[3],PTest,AsTest[L],type_perte);
-        studies[i]["cost_test"] = costTest;
-        studies[i]["num_tirage"] = i;
-
-        std::cout << "On est au tirage: " << i << std::endl;
+            std::cout << "On est au tirage: " << i << std::endl;
+            std::cout << "Numéro Thread: " << omp_get_thread_num() << std::endl;
+        }
     }
 
     return studies;
 
 }
 
-void minsRecord(std::vector<std::map<std::string,Sdouble>> studies, std::string const& folder, std::string const& fileEnd, Sdouble const& eps)
+std::vector<std::map<std::string,Sdouble>> tiragesClassification(std::vector<Eigen::SMatrixXd>& data, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::string const& type_perte,
+std::string const& famille_algo, std::string const& algo, std::vector<double> const& supParameters, std::string const& generator,
+int const& tirageMin, int const& nbTirages, Sdouble const& eps, int const& maxIter,
+Sdouble const& learning_rate, Sdouble const& clip, Sdouble const& seuil, Sdouble const& beta1, Sdouble const& beta2, int const & batch_size,
+Sdouble& mu, Sdouble& factor, Sdouble const& RMin, Sdouble const& RMax, int const& b, Sdouble const& alpha,
+Sdouble const& pas, Sdouble const& Rlim, Sdouble& factorMin, Sdouble const& power, Sdouble const& alphaChap, Sdouble const& epsDiag,
+bool const tracking)
+{
+    int const PTrain=data[0].cols(), PTest = data[2].cols();
+
+    int const tirageMax=tirageMin+nbTirages;
+
+    std::vector<std::map<std::string,Sdouble>> studies(nbTirages);
+
+
+    #pragma omp parallel
+    {
+        std::vector<Eigen::SMatrixXd> weights(L);
+        std::vector<Eigen::SVectorXd> bias(L);
+        std::vector<Eigen::SMatrixXd> AsTrain(L+1), AsTest(L+1);
+        AsTrain[0]=data[0]; AsTest[0]=data[2];
+        std::vector<Eigen::SMatrixXd> slopes(L);
+        Sdouble costTest, classTrain=0, classTest=0;
+        int classe;
+
+        #pragma omp for
+        for(int i=tirageMin;i<tirageMax;i++)
+        {
+            initialisation(nbNeurons,weights,bias,supParameters,generator,i);
+            studies[i] = train(data[0],data[1],L,nbNeurons,globalIndices,activations,weights,bias,type_perte,famille_algo,algo,eps,maxIter,
+            learning_rate,clip,seuil,beta1,beta2,batch_size,
+            mu,factor,RMin,RMax,b,alpha,pas,Rlim,factorMin,power,alphaChap,epsDiag,tracking);
+
+            fforward(L,PTrain,nbNeurons,activations,weights,bias,AsTrain,slopes);
+
+            fforward(L,PTest,nbNeurons,activations,weights,bias,AsTest,slopes);
+            costTest = risk(data[3],PTest,AsTest[L],type_perte);
+            studies[i]["cost_test"] = costTest;
+            studies[i]["num_tirage"] = i;
+
+            if(data[0].rows()==1)
+            {
+                for(int p=0; p<PTrain;p++)
+                {
+                    if(AsTrain[L](0,p)<0.5 && data[1](0,p)==0){classTrain++;}
+                    else if(AsTrain[L](0,p)>0.5 && data[1](0,p)==1){classTrain++;}
+                }
+                for(int p=0; p<PTest;p++)
+                {
+                    if(AsTest[L](0,p)<0.5 && data[3](0,p)==0){classTest++;}
+                    else if(AsTest[L](0,p)>0.5 && data[3](0,p)==1){classTest++;}
+                }
+            }
+            else
+            {
+                for(int p=0; p<PTrain;p++)
+                {
+                    AsTrain[L].col(p).maxCoeff(&classe);
+                    if(data[1](classe,p)==1){classTrain++;}
+                }
+                for(int p=0; p<PTest;p++)
+                {
+                    AsTest[L].col(p).maxCoeff(&classe);
+                    if(data[3](classe,p)==1){classTest++;}
+                }
+            }
+
+            studies[i]["classTrain"] = Sdouble(classTrain)/Sdouble(PTrain); studies[i]["classTest"] = Sdouble(classTest)/Sdouble(PTest);
+
+            std::cout << "On est au tirage: " << i << std::endl;
+            std::cout << "Numéro Thread: " << omp_get_thread_num() << std::endl;
+        }
+    }
+
+    return studies;
+
+}
+
+void minsRecordRegression(std::vector<std::map<std::string,Sdouble>> studies, std::string const& folder, std::string const& fileEnd, Sdouble const& eps)
 {
 
-    std::ofstream costFlux(("Record/"+folder+"/cost_"+fileEnd).c_str());
-    std::ofstream costTestFlux(("Record/"+folder+"/costTest_"+fileEnd).c_str());
+    std::ofstream infosFlux(("Record/"+folder+"/info_"+fileEnd).c_str());
 
-    if(!costFlux || !costTestFlux)
+    if(!infosFlux)
     {
         std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl; exit(1);
     }
@@ -65,32 +145,100 @@ void minsRecord(std::vector<std::map<std::string,Sdouble>> studies, std::string 
     {
         study = studies[i];
 
-        if(study["finalGradient"]+std::abs(study["finalGradient"].error)<eps && !Sstd::isnan(study["finalGradient"]) && !Sstd::isinf(study["finalGradient"]) && !numericalNoise(study["finalGradient"]))
+        if((study["finalGradient"]+std::abs(study["finalGradient"].error)<eps) && !Sstd::isnan(study["finalGradient"]) && !Sstd::isinf(study["finalGradient"]) && !numericalNoise(study["finalGradient"]))
         {
 
-            costFlux << study["num_tirage"] << std::endl;
-            costFlux << study["iter"].number << std::endl;
-            costFlux << study["finalCost"].number << std::endl;
-            costFlux << std::abs(study["finalCost"].error) << std::endl;
+            infosFlux << study["num_tirage"].number << std::endl;
+            infosFlux << study["iter"].number << std::endl;
+            infosFlux << study["time"].number << std::endl;
 
-            costTestFlux << study["num_tirage"] << std::endl;
-            costTestFlux << study["iter"].number << std::endl;
-            costTestFlux << study["cost_test"].number << std::endl;
-            costTestFlux << std::abs(study["cost_test"].error) << std::endl;
+            infosFlux << study["finalCost"].number << std::endl;
+            infosFlux << std::abs(study["finalCost"].error) << std::endl;
+
+            infosFlux << study["cost_test"].number << std::endl;
+            infosFlux << std::abs(study["cost_test"].error) << std::endl;
+
+            infosFlux << study["prop_entropie"].number << std::endl;
+
         }
         else
         {
-            if(Sstd::abs(study["finalGradient"])>1 || Sstd::isnan(study["finalGradient"]))
+            if(Sstd::abs(study["finalGradient"])>1000 || Sstd::isnan(study["finalGradient"]) || Sstd::isinf(study["finalGradient"]))
             {
                 div++;
             }
             else
             {
+                std::cout << study["finalGradient"].number << std::endl;
                 nonConv++;
             }
         }
 
     }
+
+    infosFlux << (Sdouble(nonConv)/Sdouble(nbTirages)).number << std::endl;
+    infosFlux << (Sdouble(div)/Sdouble(nbTirages)).number << std::endl;
+
+    std::cout << "Proportion de divergence: " << Sdouble(div)/Sdouble(nbTirages) << std::endl;
+    std::cout << "Proportion de non convergence: " << Sdouble(nonConv)/Sdouble(nbTirages) << std::endl;
+
+}
+
+void minsRecordClassification(std::vector<std::map<std::string,Sdouble>> studies, std::string const& folder, std::string const& fileEnd, Sdouble const& eps)
+{
+
+    std::ofstream infosFlux(("Record/"+folder+"/info_"+fileEnd).c_str());
+
+    if(!infosFlux)
+    {
+        std::cout << "Impossible d'ouvrir un des fichiers en écriture" << std::endl; exit(1);
+    }
+
+    int const nbTirages = studies.size();
+    int nonConv=0, div=0;
+
+    std::map<std::string,Sdouble> study;
+
+    for(int i=0; i<nbTirages; i++)
+    {
+        study = studies[i];
+
+        if((study["finalGradient"]+std::abs(study["finalGradient"].error)<eps) && !Sstd::isnan(study["finalGradient"]) && !Sstd::isinf(study["finalGradient"]) && !numericalNoise(study["finalGradient"]))
+        {
+
+            infosFlux << study["num_tirage"].number << std::endl;
+            infosFlux << study["iter"].number << std::endl;
+            infosFlux << study["time"].number << std::endl;
+
+            infosFlux << study["finalCost"].number << std::endl;
+            infosFlux << std::abs(study["finalCost"].error) << std::endl;
+
+            infosFlux << study["cost_test"].number << std::endl;
+            infosFlux << std::abs(study["cost_test"].error) << std::endl;
+
+            infosFlux << study["prop_entropie"].number << std::endl;
+
+            infosFlux << study["classTrain"].number << std::endl;
+            infosFlux << study["classTest"].number << std::endl;
+
+        }
+        else
+        {
+            if(Sstd::abs(study["finalGradient"])>1000 || Sstd::isnan(study["finalGradient"]) || Sstd::isinf(study["finalGradient"]))
+            {
+                div++;
+            }
+            else
+            {
+                //std::cout << study["finalGradient"].number << std::endl;
+                nonConv++;
+            }
+        }
+
+    }
+
+    infosFlux << (Sdouble(nonConv)/Sdouble(nbTirages)).number << std::endl;
+    infosFlux << (Sdouble(div)/Sdouble(nbTirages)).number << std::endl;
 
     std::cout << "Proportion de divergence: " << Sdouble(div)/Sdouble(nbTirages) << std::endl;
     std::cout << "Proportion de non convergence: " << Sdouble(nonConv)/Sdouble(nbTirages) << std::endl;
