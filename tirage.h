@@ -51,6 +51,9 @@ std::string const& folder, std::string const fileExtension="", bool const tracki
 std::string informationFile(int const& PTrain, int const& PTest, int const& L, std::vector<int> const& nbNeurons,
 std::vector<std::string> const& activations, std::string const& type_perte,
 std::string const& algo, std::vector<double> const& supParameters, std::string const& generator,
-int const& tirageMin, int const& nbTirages, Sdouble const& eps, int const& maxIter, std::string const fileExtension="");
+int const& tirageMin, int const& nbTirages, Sdouble const& eta, Sdouble const& eps, int const& maxIter, std::string const fileExtension="");
+
+void classificationRate(Eigen::SMatrixXd const& dataTrain, Eigen::SMatrixXd const& dataTest, Eigen::SMatrixXd const& AsTrain, Eigen::SMatrixXd const& AsTest,
+int const& PTrain, int const& PTest, Sdouble& rateTrain, Sdouble& rateTest);
 
 #endif
