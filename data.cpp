@@ -203,6 +203,36 @@ std::vector<Eigen::SMatrixXd> twoSpiral(int const& nbPoints)
 
 }
 
+std::vector<Eigen::SMatrixXd> twoSpiralOriginal()
+{
+    std::vector<Eigen::SMatrixXd> data(2);
+    Eigen::SMatrixXd X(2,2*97);
+    Eigen::SMatrixXd Y(1,2*97);
+
+    Eigen::SArrayXd phi = Eigen::SArrayXd::LinSpaced(97,0,96);
+    Eigen::SArrayXd r = 6.5*(104-phi)/104;
+    phi*=M_PI/16;
+    int i;
+    //Eigen::Rand::Vmt19937_64 gen{ 100 };
+
+    for(i=0;i<97;i++)
+    {
+        X(0,i) = Sstd::cos(phi[i])*r[i];
+        X(1,i) = Sstd::sin(phi[i])*r[i];
+        Y(0,i)=0;
+    }
+    for(i=97;i<2*97;i++)
+    {
+        X(0,i) = -Sstd::cos(phi[i-97])*r[i-97];
+        X(1,i) = -Sstd::sin(phi[i-97])*r[i-97];
+        Y(0,i)=1;
+    }
+
+    data[0]=X; data[1]=Y;
+    return data;
+
+}
+
 std::vector<Eigen::SMatrixXd> Boston(int const PTrain, int const PTest)
 {
     std::ifstream fileTrainInputs("Data/boston_inputs_train.csv");
@@ -211,6 +241,81 @@ std::vector<Eigen::SMatrixXd> Boston(int const PTrain, int const PTest)
     std::ifstream fileTestOutputs("Data/boston_outputs_test.csv");
 
     Eigen::SMatrixXd XTrain(13,PTrain), XTest(13,PTest);
+    Eigen::SMatrixXd YTrain = Eigen::SMatrixXd::Zero(1,PTrain), YTest = Eigen::SMatrixXd::Zero(1,PTest);
+    std::vector<Eigen::SMatrixXd> data(4);
+
+    std::string line, subChaine;
+    std::stringstream ss(line);
+    int i=0,j=0;
+
+   if(fileTrainInputs && fileTrainOutputs)
+   {
+
+      while(getline(fileTrainInputs, line) && i<PTrain)
+      {
+            ss=(std::stringstream)line;
+            while (std::getline(ss, subChaine, ','))
+            {
+                XTrain(j,i)=Sdouble(strtod(subChaine.c_str(),NULL));
+                j++;
+            }
+            i++; j=0;
+      }
+
+      i=0;
+      while(getline(fileTrainOutputs, line) && i<PTrain)
+      {
+            YTrain(0,i)=Sdouble(strtod(line.c_str(),NULL));
+            i++;
+      }
+   }
+   else
+   {
+      std::cout << "ERREUR: Impossible d'ouvrir le fichier d'entraînement en lecture." << std::endl;
+   }
+
+   i=0;j=0;
+
+   if(fileTestInputs && fileTestOutputs)
+   {
+
+      while(getline(fileTestInputs, line) && i<PTest)
+      {
+            ss=(std::stringstream)line;
+            while (std::getline(ss, subChaine, ','))
+            {
+                XTest(j,i)=Sdouble(strtod(subChaine.c_str(),NULL));
+                j++;
+            }
+            i++; j=0;
+      }
+
+      i=0;
+      while(getline(fileTestOutputs, line) && i<PTest)
+      {
+            YTest(0,i)=Sdouble(strtod(line.c_str(),NULL));
+            i++;
+      }
+   }
+   else
+   {
+      std::cout << "ERREUR: Impossible d'ouvrir le fichier de test en lecture." << std::endl;
+   }
+
+   data[0]=XTrain; data[1]=YTrain; data[2]=XTest; data[3]=YTest;
+
+   return data;
+
+}
+
+std::vector<Eigen::SMatrixXd> California(int const PTrain, int const PTest)
+{
+    std::ifstream fileTrainInputs("Data/california_inputs_train.csv");
+    std::ifstream fileTrainOutputs("Data/california_outputs_train.csv");
+    std::ifstream fileTestInputs("Data/california_inputs_test.csv");
+    std::ifstream fileTestOutputs("Data/california_outputs_test.csv");
+
+    Eigen::SMatrixXd XTrain(16,PTrain), XTest(16,PTest);
     Eigen::SMatrixXd YTrain = Eigen::SMatrixXd::Zero(1,PTrain), YTest = Eigen::SMatrixXd::Zero(1,PTest);
     std::vector<Eigen::SMatrixXd> data(4);
 
@@ -348,7 +453,7 @@ std::vector<Eigen::SMatrixXd> trainTestData(std::vector <Eigen::SMatrixXd> const
     std::vector<char> nbChosen(P);
     Eigen::SMatrixXd XTrain(n0,sizeTrain), XTest(n0,sizeTest), YTrain(nL,sizeTrain), YTest(nL,sizeTest);
     int i, j=0, iter=0, randomNumber;
-    std::default_random_engine re;
+    std::default_random_engine re(0);
     std::default_random_engine reAlea(time(0));
     std::uniform_int_distribution<int> distrib{0,P-1};
 
@@ -361,12 +466,13 @@ std::vector<Eigen::SMatrixXd> trainTestData(std::vector <Eigen::SMatrixXd> const
     YTrain.col(0) = data[1].col(randomNumber);
     for (i=1;i<sizeTrain;i++)
     {
+       iter=0;
        do
        {
         if (reproductible){randomNumber=distrib(re);}
         else {randomNumber=distrib(reAlea);}
         iter++;
-       }while(nbChosen[randomNumber]=='y' && iter<10*P);
+       }while(nbChosen[randomNumber]=='y');
        nbChosen[randomNumber]='y';
 
        XTrain.col(i) = data[0].col(randomNumber);
