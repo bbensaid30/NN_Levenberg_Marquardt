@@ -1,8 +1,8 @@
-
 import numpy as np
 from numpy.lib.function_base import median
 import pandas as pd
 from scipy import stats
+import scipy as sp
 import seaborn as sns
 import random as rd
 import os
@@ -176,7 +176,7 @@ def histos(fileGrad,fileDistance,fileIter,fileIterForward,fileInit,minIndices,co
     fig0.show(); fig1.show(); fig2.show(); fig3.show()
     plt.show()
 
-def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=20):
+def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=20, valueR=0.01):
     nbMins = len(minIndices)
     initContent=[]
     for nb in range(nbMins):
@@ -195,7 +195,7 @@ def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=2
 
     W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
     R = cost(W,B,example)
-    R = np.ma.array(R, mask=np.any([R > 0.001], axis=0))
+    R = np.ma.array(R, mask=np.any([R > valueR], axis=0))
 
     fig = plt.figure(figsize=(10,10))
     #plt.gcf().subplots_adjust(0,0,1,1)
@@ -206,14 +206,16 @@ def init(fileInit,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=2
         axes.scatter(initContent[nb][0],initContent[nb][1],c=colorPoints[nb],label=minIndices[nb])
     
     isoLines = axes.contour(W,B,R,nbIsolines)
-    cbar = fig.colorbar(isoLines)
+    #cbar = fig.colorbar(isoLines); cbar.set_label('Isolines', rotation=270)
 
-    axes.legend()
+    axes.legend(bbox_to_anchor=(0.00, 1.0), loc='upper left')
+    #axes.legend(bbox_to_anchor=(-0.2, -0.2), loc='lower left')
+    #axes.legend(loc='upper left')
     axes.set_xlim(limits[0],limits[1])
     axes.set_xlabel("w")
     axes.set_ylim(limits[2],limits[3])
     axes.set_ylabel("b")
-    axes.set_title("Ensemble des points d'initialisation convergeant vers un certain miminum")
+    axes.set_title("Set of initial points that converge to a given minimum")
     
     fig.show()
     plt.show()
@@ -254,15 +256,15 @@ def tracking(fileTracking,minIndices):
         else:
             sns.histplot(propContent[nb], stat='probability',ax=axes0[nb])
         if(nb<=nbMins-4):
-            axes0[nb].set_title("Point: "+minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
+            axes0[nb].set_title("Point: "+minIndices[nb]+" (" + str(round(props[nb]/draw*100,2)) +"%)")
         else:
-            axes0[nb].set_title(minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
+            axes0[nb].set_title(minIndices[nb]+" (" + str(round(props[nb]/draw*100,2)) +"%)")
         #axes0[nb].set_xlabel("prop_V")
         axes0[nb].set_xlabel("prop_E")
         #axes0[nb].set_xlabel("continuous_entropie")
         axes0[nb].set_ylabel("Probability")
     #fig0.suptitle("Lien entre minimum et diminution de la fonction de Lyapunov "+"("+str(drawSucceed)+" points)")
-    fig0.suptitle("Lien entre minimum et énergie ")
+    fig0.suptitle("Link between minimum and energy")
 
     fig1,axes1 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
     plt.subplots_adjust(hspace=0.4)
@@ -276,7 +278,7 @@ def tracking(fileTracking,minIndices):
         axes1[nb].set_xlabel("iter")
         axes1[nb].set_ylabel("prop_Em")
     #fig1.suptitle("Lien entre nombre d'itérations et condition entropique "+"("+str(drawSucceed)+" points)")
-    fig1.suptitle("Lien entre nombre d'itérations et énergie mécanique "+"("+str(drawSucceed)+" points convergents)")
+    fig1.suptitle("Link between energy and number of iterations "+"("+str(drawSucceed)+" convergent points)")
 
     fig2,axes2 = plt.subplots(lines,2,sharex=True,figsize=(10,10))
     plt.subplots_adjust(hspace=0.4)
@@ -293,7 +295,7 @@ def tracking(fileTracking,minIndices):
             axes2[nb].set_title(minIndices[nb]+" (" + str(round(props[nb]/draw*100,1)) +"%)")
         axes2[nb].set_xlabel("initial_inequality")
         axes2[nb].set_ylabel("Probability")
-    fig2.suptitle("Lien entre minimum et connexité des sous-niveaux "+"("+str(drawSucceed)+" points convergents)")
+    fig2.suptitle("Link between minimum and connexity and the level sets "+"("+str(drawSucceed)+" convergent points)")
 
     verif_condition=0
     verif_ineq=0
@@ -314,10 +316,81 @@ def tracking(fileTracking,minIndices):
 
 os.chdir("/home/bensaid/Documents/Anabase/NN_shaman")    
 
-example="polyThree"
+
+def speedDissipation(fileTab, points, colors):
+    plt.title("Etude de la vitesse de dissipation")
+    plt.xlabel("Itérations")
+    #plt.ylabel("log10(|deltaR/h+grad^2|)")
+    #plt.ylabel("log10(|deltaR/h+grad1.grad2|)")
+    plt.ylabel("log10(|deltaE/h+v1^2|)")
+    nbFiles=len(fileTab)
+    for k in range(nbFiles):
+        fileName=fileTab[k]
+        speedContent = pd.read_csv(fileName,header=None).to_numpy()
+        nbModifs = speedContent.shape[0]
+        X=[]; Y=[]
+        for i in range(nbModifs):
+            X.append(i); Y.append(np.log10(np.abs(speedContent[i][0])))
+        plt.plot(X,Y, label=points[k], c=colors[k])
+    plt.legend()
+    plt.show()
+
+def energy_map(fileInit,fileTracking,limits=(-3,3,-3,3)):
+    x=[]; y=[]; z=[]
+
+    fileInitContent=pd.read_csv(fileInit,header=None).to_numpy()
+    fileTrackingContent=pd.read_csv(fileTracking,header=None).to_numpy()
+    draw = fileTrackingContent.shape[0]//4
+
+    for i in range(draw):
+        x.append(fileInitContent[3*i+1][0]); y.append(fileInitContent[3*i+2][0])
+        z.append(fileTrackingContent[4*i+2][0])
+    x=np.array(x);y=np.array(y);z=np.array(z)
+    
+    fig = plt.figure(figsize=(10,10))
+    #plt.gcf().subplots_adjust(0,0,1,1)
+    axes = fig.add_subplot(111)
+    #axes.set_frame_on(True)
+    #axes.add_artist(patches.Rectangle((limits[0],limits[2]),np.abs(limits[1]-limits[0]),np.abs(limits[3]-limits[2]),color="red",fill=False))
+    axes.set_xlim(limits[0],limits[1])
+    axes.set_ylim(limits[2],limits[3])
+    im = axes.scatter(x,y,c=z,cmap=plt.cm.viridis)
+    fig.colorbar(im)
+    axes.set_xlabel("w")
+    axes.set_ylabel("b")
+
+    fig.show()
+    plt.show()
+    
+
+    """
+    xi = np.linspace(x.min(), x.max(), 1000)
+    yi = np.linspace(y.min(), y.max(), 1000)
+
+    # Interpolate for plotting
+    zi = sp.interpolate.griddata((x, y), z, (xi[None,:], yi[:,None]), method='nearest')
+
+    # I control the range of my colorbar by removing data 
+    # outside of my range of interest
+    zmin = 0
+    zmax = 1
+    zi[(zi<zmin) | (zi>zmax)] = None
+
+    # Create the contour plot
+    CS = plt.contourf(xi, yi, zi, 15, cmap=plt.cm.rainbow,
+                  vmax=zmax, vmin=zmin)
+    plt.colorbar()
+    plt.xlabel("w")
+    plt.ylabel("b")   
+    plt.show()
+    """
+
+    
+example="polyTwo"
 limits=(-3,3,-3,3)
-nbIsolines=0
-minIndices=["(-2,1)","(2,-1)","(0,-1)","(0,1)", "Eloigné", "Gradient faible", "Divergence"]
+nbIsolines=6
+valueR=12
+minIndices=["(-2,1)","(2,-1)","(0,-1)","(0,1)", "Converge but not to a minimum", "Not enough iterations to converge", "Divergence"]
 colorPoints = ["blue","orange","gold","magenta", "gray", "forestgreen", "chocolate"]
 #minIndices = ["(2,1)", "(0,-1)", "(-2,3)", "(0,3)", "(-4,3)", "(4,-1)","Eloigné", "Gradient faible", "Divergence"]
 #colorPoints=["blue","orange","gold","red","magenta","black", "gray", "forestgreen", "chocolate"]
@@ -325,7 +398,7 @@ colorPoints = ["blue","orange","gold","magenta", "gray", "forestgreen", "chocola
 #colorPoints = ["blue","orange", "gray", "forestgreen", "chocolate"]
 #minIndices=["(0,z2)","Eloigné", "Gradient faible", "Divergence"]
 #colorPoints = ["orange", "gray", "forestgreen", "chocolate"]
-algo="Momentum_Em"
+algo="EulerRichardson"
 setHyperparameters="1"
 directory="Record/"+example+"/"+setHyperparameters+"/"+algo+"_"
 
@@ -337,7 +410,268 @@ fileInit=directory+"init.csv"
 fileTracking=directory+"tracking.csv"
 fileTrackingContinuous = directory+"track_continuous.csv"
 
-histos(fileGrad,fileDistance,fileIter,fileIterForward,fileInit,minIndices,colorPoints)
-#init(fileInit,minIndices,colorPoints,example,limits,nbIsolines)
+#histos(fileGrad,fileDistance,fileIter,fileIterForward,fileInit,minIndices,colorPoints)
+#init(fileInit,minIndices,colorPoints,example,limits,nbIsolines,valueR)
 #tracking(fileTracking,minIndices)
+
+#energy_map(fileInit,fileTracking,limits)
+
+#---------------------------------------------- Pour l'article --------------------------------------------------------------------------------------------
+
+def init_presentation(fileInits,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=20, valueR=0.01):
+    nbMins = len(minIndices)
+
+    initContents=[]
+    for a in range(4):
+        initContent=[]
+        for nb in range(nbMins):
+            initContent.append([[],[]])
+        initContents.append(initContent)
+
+    fileInitContents=[]
+    for a in range(4):
+        fileInitContents.append(pd.read_csv(fileInits[a],header=None).to_numpy())
+        draw = fileInitContents[a].shape[0]//3
+
+        for i in range(draw):
+            nbPoint = int(fileInitContents[a][3*i][0])
+            if(nbPoint>=0):
+                initContents[a][nbPoint][0].append(fileInitContents[a][3*i+1][0]);initContents[a][nbPoint][1].append(fileInitContents[a][3*i+2][0])
+            else:
+                initContents[a][-nbPoint+len(minIndices)-4][0].append(fileInitContents[a][3*i+1][0])
+                initContents[a][-nbPoint+len(minIndices)-4][1].append(fileInitContents[a][3*i+2][0])
+
+    W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
+    R = cost(W,B,example)
+    R = np.ma.array(R, mask=np.any([R > valueR], axis=0))
+
+    fig = plt.figure(figsize=(10,10))
+    plt.gcf().subplots_adjust(wspace=0.2,hspace=0.47)
+    axes = fig.subplots(nrows=2,ncols=2)
+
+    for a in range(4):
+        if(a==0):
+            ax=axes[0,0]
+            ax.set_title("(a) GD")
+        elif(a==1):
+            ax=axes[0,1]
+            ax.set_title("(b) Momentum")
+        elif(a==2):
+            ax=axes[1,0]
+            ax.set_title("(c) AWB")
+        else:
+            ax=axes[1,1]
+            ax.set_title("(d) Adam")
+        ax.set_frame_on(True)
+        ax.add_artist(patches.Rectangle((limits[0],limits[2]),np.abs(limits[1]-limits[0]),np.abs(limits[3]-limits[2]),color="red",fill=False))
+        for nb in range(nbMins):
+            ax.scatter(initContents[a][nb][0],initContents[a][nb][1],c=colorPoints[nb],label=minIndices[nb])
+        isoLines = ax.contour(W,B,R,nbIsolines)
+    
+        ax.set_xlim(limits[0],limits[1])
+        ax.set_xlabel("w")
+        ax.set_ylim(limits[2],limits[3])
+        ax.set_ylabel("b")
+    
+    #fig.suptitle("Set of initial points that converge to a given minimum")
+
+    lines, labels = fig.axes[-1].get_legend_handles_labels()
+    fig.legend(lines, labels, loc = 'center', fontsize=6)
+    
+    fig.show()
+    plt.show()
+
+fileInits = ["Record/"+example+"/"+setHyperparameters+"/"+"SGD"+"_init.csv", "Record/"+example+"/"+setHyperparameters+"/"+"Momentum"+"_init.csv", 
+"Record/"+example+"/"+setHyperparameters+"/"+"Adam"+"_init.csv", "Record/"+example+"/"+setHyperparameters+"/"+"Adam_bias"+"_init.csv"]
+#init_presentation(fileInits,minIndices,colorPoints,example,limits,nbIsolines,valueR)
+
+def init_presentation2(fileInits,minIndices,colorPoints,example,limits=(-3,3,-3,3),nbIsolines=20, valueR=0.01):
+    nbMins = len(minIndices)
+
+    initContents=[]
+    for a in range(4):
+        initContent=[]
+        for nb in range(nbMins):
+            initContent.append([[],[]])
+        initContents.append(initContent)
+
+    fileInitContents=[]
+    for a in range(4):
+        fileInitContents.append(pd.read_csv(fileInits[a],header=None).to_numpy())
+        draw = fileInitContents[a].shape[0]//3
+
+        for i in range(draw):
+            nbPoint = int(fileInitContents[a][3*i][0])
+            if(nbPoint>=0):
+                initContents[a][nbPoint][0].append(fileInitContents[a][3*i+1][0]);initContents[a][nbPoint][1].append(fileInitContents[a][3*i+2][0])
+            else:
+                initContents[a][-nbPoint+len(minIndices)-4][0].append(fileInitContents[a][3*i+1][0])
+                initContents[a][-nbPoint+len(minIndices)-4][1].append(fileInitContents[a][3*i+2][0])
+
+
+    fig = plt.figure(figsize=(10,10))
+    plt.gcf().subplots_adjust(wspace=0.2,hspace=0.47)
+    axes = fig.subplots(nrows=2,ncols=2)
+
+    for a in range(4):
+        if(a==0):
+            ax=axes[0,0]
+            ax.set_title("(a) ER/Benchmark 1")
+            W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
+            R = cost(W,B,"polyTwo")
+            R = np.ma.array(R, mask=np.any([R > 0.1], axis=0))
+        elif(a==1):
+            ax=axes[0,1]
+            ax.set_title("(b) ER/Benchmark 2")
+            W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
+            R = cost(W,B,"polyThree")
+            R = np.ma.array(R, mask=np.any([R > 12], axis=0))
+        elif(a==2):
+            ax=axes[1,0]
+            ax.set_title("(c) EM/Benchmark 1")
+            W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
+            R = cost(W,B,"polyTwo")
+            R = np.ma.array(R, mask=np.any([R > 0.1], axis=0))
+        elif(a==3):
+            ax=axes[1,1]
+            ax.set_title("(d) EM/Benchmark 2")
+            W , B = np.meshgrid(np.linspace(limits[0],limits[1],draw//10),np.linspace(limits[2],limits[3],draw//10))
+            R = cost(W,B,"polyThree")
+            R = np.ma.array(R, mask=np.any([R > 12], axis=0))
+        ax.set_frame_on(True)
+        ax.add_artist(patches.Rectangle((limits[0],limits[2]),np.abs(limits[1]-limits[0]),np.abs(limits[3]-limits[2]),color="red",fill=False))
+        for nb in range(nbMins):
+            ax.scatter(initContents[a][nb][0],initContents[a][nb][1],c=colorPoints[nb],label=minIndices[nb])
+        isoLines = ax.contour(W,B,R,nbIsolines)
+    
+        ax.set_xlim(limits[0],limits[1])
+        ax.set_xlabel("w")
+        ax.set_ylim(limits[2],limits[3])
+        ax.set_ylabel("b")
+    
+    #fig.suptitle("Set of initial points that converge to a given minimum")
+
+    lines, labels = fig.axes[-1].get_legend_handles_labels()
+    fig.legend(lines, labels, loc="center", fontsize=6)
+    
+    fig.show()
+    plt.show()
+
+fileInits = ["Record/"+"polyTwo"+"/"+setHyperparameters+"/"+"EulerRichardson"+"_init.csv", "Record/"+"polyThree"+"/"+setHyperparameters+"/"
++"EulerRichardson"+"_init.csv","Record/"+"polyTwo"+"/"+setHyperparameters+"/"+"Momentum_Em"+"_init.csv", "Record/"+"polyThree"+"/"+setHyperparameters+"/"
++"Momentum_Em"+"_init.csv"] 
+init_presentation2(fileInits,minIndices,colorPoints,example,limits,nbIsolines,valueR)
+
+
+def energy_map_presentation1(fileInits,fileTrackings,limits=(-3,3,-3,3)):
+    fig = plt.figure(figsize=(10,10))
+    plt.gcf().subplots_adjust(wspace=0.2,hspace=0.37)
+    axes = fig.subplots(nrows=2,ncols=2)
+
+    for a in range(4):
+        if(a==0):
+            ax=axes[0,0]
+            ax.set_title("(a) GD")
+        elif(a==1):
+            ax=axes[0,1]
+            ax.set_title("(b) Momentum")
+        elif(a==2):
+            ax=axes[1,0]
+            ax.set_title("(c) AWB")
+        else:
+            ax=axes[1,1]
+            ax.set_title("(d) Adam")
+
+        x=[]; y=[]; z=[]
+        
+        fileInitContent=pd.read_csv(fileInits[a],header=None).to_numpy()
+        fileTrackingContent=pd.read_csv(fileTrackings[a],header=None).to_numpy()
+        draw = fileTrackingContent.shape[0]//4
+
+        for i in range(draw):
+            x.append(fileInitContent[3*i+1][0]); y.append(fileInitContent[3*i+2][0])
+            z.append(fileTrackingContent[4*i+2][0])
+        x=np.array(x);y=np.array(y);z=np.array(z)
+    
+        ax.set_xlim(limits[0],limits[1])
+        ax.set_ylim(limits[2],limits[3])
+        ax.set_xlabel("w")
+        ax.set_ylabel("b")
+        im = ax.scatter(x,y,c=z,cmap=plt.cm.plasma)
+
+    #fig.suptitle("The increasing of the energy along the trajectories")
+    cax = fig.add_axes([0.3, 0.50, 0.4, 0.01])
+    fig.colorbar(im,cax=cax,orientation='horizontal')
+
+    fig.show()
+    plt.show()
+
+fileInits = ["Record/"+example+"/"+setHyperparameters+"/"+"SGD"+"_init.csv", "Record/"+example+"/"+setHyperparameters+"/"+"Momentum"+"_init.csv", 
+"Record/"+example+"/"+setHyperparameters+"/"+"Adam"+"_init.csv", "Record/"+example+"/"+setHyperparameters+"/"+"Adam_bias"+"_init.csv"]
+fileTrackings = ["Record/"+example+"/"+setHyperparameters+"/"+"SGD"+"_tracking.csv", "Record/"+example+"/"+setHyperparameters+"/"+"Momentum"+"_tracking.csv", 
+"Record/"+example+"/"+setHyperparameters+"/"+"Adam"+"_tracking.csv", "Record/"+example+"/"+setHyperparameters+"/"+"Adam_bias"+"_tracking.csv"]
+
+#energy_map_presentation1(fileInits,fileTrackings,limits)
+
+def energy_map_presentation2(fileInits,fileTrackings,limits=(-3,3,-3,3)):
+    fig = plt.figure(figsize=(10,10))
+    plt.gcf().subplots_adjust(wspace=0.4,hspace=0.37)
+    axes = fig.subplots(nrows=1,ncols=2)
+
+    for a in range(2):
+        if(a==0):
+            ax=axes[0]
+            ax.set_title("(a) Benchmark 1")
+        elif(a==1):
+            ax=axes[1]
+            ax.set_title("(b) Benchmark 2")
+
+        x=[]; y=[]; z=[]
+        
+        fileInitContent=pd.read_csv(fileInits[a],header=None).to_numpy()
+        fileTrackingContent=pd.read_csv(fileTrackings[a],header=None).to_numpy()
+        draw = fileTrackingContent.shape[0]//4
+
+        for i in range(draw):
+            x.append(fileInitContent[3*i+1][0]); y.append(fileInitContent[3*i+2][0])
+            z.append(fileTrackingContent[4*i+2][0])
+        x=np.array(x);y=np.array(y);z=np.array(z)
+    
+        ax.set_xlim(limits[0],limits[1])
+        ax.set_ylim(limits[2],limits[3])
+        ax.set_xlabel("w")
+        ax.set_ylabel("b")
+        im = ax.scatter(x,y,c=z,cmap=plt.cm.plasma)
+
+    #fig.suptitle("The increasing of the energy along the trajectories")
+    cax = fig.add_axes([0.5, 0.11, 0.02, 0.765])
+    fig.colorbar(im,cax=cax,orientation='vertical')
+
+    fig.show()
+    plt.show()
+
+fileInits = ["Record/"+"polyTwo"+"/"+setHyperparameters+"/"+"EulerRichardson"+"_init.csv", "Record/"+"polyThree"+"/"+setHyperparameters+"/"+"EulerRichardson"+"_init.csv"]
+fileTrackings = ["Record/"+"polyTwo"+"/"+setHyperparameters+"/"+"EulerRichardson"+"_tracking.csv", "Record/"+"polyThree"+"/"+setHyperparameters+"/"+"EulerRichardson"+"_tracking.csv"]
+#energy_map_presentation2(fileInits,fileTrackings,limits)
+
+nbFiles=10
+generalName = "Record/speed_Momentum_Em_"
+fileTab=[]
+for i in range(1,nbFiles+1):
+    fileTab.append(generalName+str(i)+".csv")
+points=["(-0.5,0.5)", "(-2.5,2.5)", "(-1.5,0.5)", "(-3,-2.5)", "(-1,-2.5)", "(1,1)", "(-1.1,0)","(1.1,0)", "(2.5,3)","(-5,-4)"]
+colors=["blue","orange","gold","magenta", "gray", "forestgreen","chocolate","pink","red","darkviolet"]
+
+#points=["(-0.5,0.5)", "(-2.5,2.5)", "(-1.5,0.5)", "(1,1)", "(-1.1,0)","(1.1,0)","(2,1)"]
+#colors=["blue","orange","gold","forestgreen","chocolate","pink","darkviolet"]
+
+#points=["(-0.5,0.5)", "(-2.5,2.5)", "(-1.5,0.5)", "(-3,-2.5)", "(-1,-2.5)", "(1,1)", "(-1.1,0)","(1.1,0)", "(2.5,3)","(2,1)"]
+#colors=["blue","orange","gold","magenta", "gray", "forestgreen","chocolate","pink","red","darkviolet"]
+
+#points=["(-0.5,0.5)", "(-2.5,2.5)", "(-1.5,0.5)", "(-1,-2.5)", "(1,1)", "(-1.1,0)","(1.1,0)", "(2.5,3)","(2,1)"]
+#colors=["blue","orange","gold", "gray", "forestgreen","chocolate","pink","red","darkviolet"]
+
+#speedDissipation(fileTab,points,colors)
+
+
 
