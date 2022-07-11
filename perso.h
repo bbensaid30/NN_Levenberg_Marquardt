@@ -26,6 +26,21 @@ std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weig
 Sdouble const& learning_rate_init, Sdouble const& seuil, Sdouble const& eps, int const& maxIter,
 bool const tracking=false, bool const record=false, std::string const fileExtension="");
 
+std::map<std::string,Sdouble> PGD(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> PM(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& beta1_init, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> PER(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& seuil, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
 std::map<std::string,Sdouble> ER_Em(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
 Sdouble const& learning_rate_init, Sdouble const& seuil, Sdouble const& eps, int const& maxIter,
@@ -60,6 +75,16 @@ std::map<std::string,Sdouble> Momentum_Em(Eigen::SMatrixXd& X, Eigen::SMatrixXd&
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate_init,
 Sdouble const& beta1_init, Sdouble const& eps, int const& maxIter,
 bool const tracking=false, bool const track_continuous=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> Momentum_Em_parametric(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate_init,
+Sdouble const& beta1_init, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const track_continuous=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> ABE(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate_init,
+Sdouble const& beta1_init, Sdouble const& beta2_init, Sdouble const& eps, int const& maxIter,
+bool const tracking, bool const record, std::string const fileExtension);
 
 std::map<std::string,Sdouble> Nesterov2(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate,
