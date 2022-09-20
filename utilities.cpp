@@ -1,5 +1,25 @@
 #include "utilities.h"
 
+void echanger(Sdouble& a, Sdouble& b)
+{
+    Sdouble inter = b;
+    b=a; a=inter;
+}
+
+bool appartient_intervalle(Sdouble x, Sdouble gauche, Sdouble droite)
+{
+    if(gauche <= droite)
+    {
+        if(x>=gauche && x <=droite){return true;}
+        else{return false;}
+    }
+    else
+    {
+        if(x>=droite && x <=gauche){return true;}
+        else{return false;}
+    }
+}
+
 int proportion(Eigen::SVectorXd const& currentPoint, std::vector<Eigen::SVectorXd> const& points, std::vector<Sdouble>& proportions, std::vector<Sdouble>& distances, Sdouble const& epsNeight)
 {
     int const nbPoints=points.size(), nbProportions=proportions.size();
@@ -269,4 +289,9 @@ Sdouble expInv(Sdouble const& x)
     {
         return Sstd::exp(-1/(x*x));
     }
+}
+
+Sdouble fAdam(Sdouble const& a, Sdouble const& b, Sdouble const& t)
+{
+    return Sstd::sqrt(1-Sstd::exp(-b*t))/(1-Sstd::exp(-a*t));
 }

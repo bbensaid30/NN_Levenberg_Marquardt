@@ -14,6 +14,8 @@
 
 #include "eigenExtension.h"
 
+void echanger(Sdouble& a, Sdouble& b);
+bool appartient_intervalle(Sdouble x, Sdouble gauche, Sdouble droite);
 
 int proportion(Eigen::SVectorXd const& currentPoint, std::vector<Eigen::SVectorXd> const& points, std::vector<Sdouble>& proportions,  std::vector<Sdouble>& distances, Sdouble const& epsNeight);
 
@@ -49,6 +51,8 @@ void readVector(std::ifstream& flux, Eigen::SVectorXd& result, int const& nbRows
 Sdouble indexProperValues(Eigen::SMatrixXd const& H);
 
 Sdouble expInv(Sdouble const& x);
+
+Sdouble fAdam(Sdouble const& a, Sdouble const& b, Sdouble const& t);
 
 
 
