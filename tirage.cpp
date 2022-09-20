@@ -38,11 +38,12 @@ bool const tracking)
             studies[i]["cost_test"] = costTest;
             studies[i]["num_tirage"] = i;
 
-            std::cout << "On est au tirage: " << i << std::endl;
+            /* std::cout << "On est au tirage: " << i << std::endl;
             std::cout << "iters: " << studies[i]["iter"] << std::endl;
+            std::cout << "time: " << studies[i]["time"] << std::endl;
             std::cout << "costTrain: " << studies[i]["finalCost"] << std::endl;
             std::cout << "costTest: " << studies[i]["cost_test"] << std::endl;
-            std::cout << "Numéro Thread: " << omp_get_thread_num() << std::endl;
+            std::cout << "Numéro Thread: " << omp_get_thread_num() << std::endl; */
         }
     }
 
