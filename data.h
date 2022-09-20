@@ -33,6 +33,7 @@ std::vector<Eigen::SMatrixXd> carreFunction2(int const& nbPoints);
 std::vector<Eigen::SMatrixXd> twoSpiral(int const& nbPoints);
 std::vector<Eigen::SMatrixXd> twoSpiralOriginal();
 std::vector<Eigen::SMatrixXd> Boston(int const PTrain=404, int const PTest=102);
+std::vector<Eigen::SMatrixXd> Sonar(int const PTrain=104, int const PTest=104);
 std::vector<Eigen::SMatrixXd> California(int const PTrain=11272, int const PTest=2818);
 std::vector<Eigen::SMatrixXd> MNIST(int const PTrain=60000, int const PTest=10000);
 

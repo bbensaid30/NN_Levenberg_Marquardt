@@ -308,6 +308,81 @@ std::vector<Eigen::SMatrixXd> Boston(int const PTrain, int const PTest)
 
 }
 
+std::vector<Eigen::SMatrixXd> Sonar(int const PTrain, int const PTest)
+{
+    std::ifstream fileTrainInputs("Data/sonar_inputs_train.csv");
+    std::ifstream fileTrainOutputs("Data/sonar_outputs_train.csv");
+    std::ifstream fileTestInputs("Data/sonar_inputs_test.csv");
+    std::ifstream fileTestOutputs("Data/sonar_outputs_test.csv");
+
+    Eigen::SMatrixXd XTrain(60,PTrain), XTest(60,PTest);
+    Eigen::SMatrixXd YTrain = Eigen::SMatrixXd::Zero(1,PTrain), YTest = Eigen::SMatrixXd::Zero(1,PTest);
+    std::vector<Eigen::SMatrixXd> data(4);
+
+    std::string line, subChaine;
+    std::stringstream ss(line);
+    int i=0,j=0;
+
+   if(fileTrainInputs && fileTrainOutputs)
+   {
+
+      while(getline(fileTrainInputs, line) && i<PTrain)
+      {
+            ss=(std::stringstream)line;
+            while (std::getline(ss, subChaine, ','))
+            {
+                XTrain(j,i)=Sdouble(strtod(subChaine.c_str(),NULL));
+                j++;
+            }
+            i++; j=0;
+      }
+
+      i=0;
+      while(getline(fileTrainOutputs, line) && i<PTrain)
+      {
+            YTrain(0,i)=Sdouble(strtod(line.c_str(),NULL));
+            i++;
+      }
+   }
+   else
+   {
+      std::cout << "ERREUR: Impossible d'ouvrir le fichier d'entraînement en lecture." << std::endl;
+   }
+
+   i=0;j=0;
+
+   if(fileTestInputs && fileTestOutputs)
+   {
+
+      while(getline(fileTestInputs, line) && i<PTest)
+      {
+            ss=(std::stringstream)line;
+            while (std::getline(ss, subChaine, ','))
+            {
+                XTest(j,i)=Sdouble(strtod(subChaine.c_str(),NULL));
+                j++;
+            }
+            i++; j=0;
+      }
+
+      i=0;
+      while(getline(fileTestOutputs, line) && i<PTest)
+      {
+            YTest(0,i)=Sdouble(strtod(line.c_str(),NULL));
+            i++;
+      }
+   }
+   else
+   {
+      std::cout << "ERREUR: Impossible d'ouvrir le fichier de test en lecture." << std::endl;
+   }
+
+   data[0]=XTrain; data[1]=YTrain; data[2]=XTest; data[3]=YTest;
+
+   return data;
+
+}
+
 std::vector<Eigen::SMatrixXd> California(int const PTrain, int const PTest)
 {
     std::ifstream fileTrainInputs("Data/california_inputs_train.csv");
