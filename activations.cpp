@@ -11,10 +11,21 @@ void sigmoid(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
     S = Z.array()*(1-Z.array());
 }
 
+//approximation de GELU
+void GELU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+{
+    Sdouble const c = 1.702;
+
+    Eigen::SMatrixXd U = Z;
+    Z = (1+(-c*Z).array().exp()).inverse();
+    S = Z.array()*(1+c*U.array()*(1-Z.array()));
+    Z = U.array()*Z.array();
+}
+
 void softmax(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q)
 {
     int const tailleX=Z.rows(), tailleY=Z.cols();
-    assert(q>=0); assert(q<tailleX);
+    assert(q>=-1); assert(q<tailleX);
     Eigen::SMatrixXd A(tailleX,tailleY);
 
     A = Z.array().exp();
@@ -51,6 +62,24 @@ void reLU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
     S = (Z.array()>0).select(U,0);
 }
 
+void softplus(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+{
+    S = (1+(-Z).array().exp()).inverse();
+    Z = (1+Z.array().exp()).log();
+}
+
+void IDC(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+{
+    S = (Z.array())*(2*(1+Z.array().pow(2)).sqrt()).inverse()+1;
+    Z = Z.array()+((1+Z.array().pow(2)).sqrt()-1)/2;
+}
+
+void sinus(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S)
+{
+    S = Z.array().cos();
+    Z = Z.array().sin();
+}
+
 
 void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q)
 {
@@ -69,6 +98,22 @@ void activation(std::string nameActivation, Eigen::SMatrixXd& Z, Eigen::SMatrixX
     else if(nameActivation == "reLU")
     {
         reLU(Z,S);
+    }
+    else if(nameActivation == "GELU")
+    {
+        GELU(Z,S);
+    }
+    else if(nameActivation == "softplus")
+    {
+        softplus(Z,S);
+    }
+    else if(nameActivation == "IDC")
+    {
+        IDC(Z,S);
+    }
+    else if(nameActivation == "sinus")
+    {
+        sinus(Z,S);
     }
     else if(nameActivation == "softmax")
     {

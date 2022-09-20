@@ -14,6 +14,10 @@ void sigmoid(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 void softmax(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S, int const q=-1);
 void tanh(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 void reLU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void GELU(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void softplus(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void IDC(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
+void sinus(Eigen::SMatrixXd& Z, Eigen::SMatrixXd& S);
 
 //Activations pour les cas tests de la fonction de cout norme 2
 //L'hypothèse est vérifiée pour tous les mins pour polyTwo et pour le min global pour polyThree
