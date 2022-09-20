@@ -10,6 +10,7 @@
 
 #include <random>
 #include <algorithm>
+#include "unistd.h"
 
 #include <Eigen/Dense>
 #include "shaman.h"
@@ -26,7 +27,27 @@ std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weig
 Sdouble const& learning_rate_init, Sdouble const& seuil, Sdouble const& eps, int const& maxIter,
 bool const tracking=false, bool const record=false, std::string const fileExtension="");
 
+std::map<std::string,Sdouble> LC_EGD(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte, Sdouble const& learning_rate_init,
+Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
 std::map<std::string,Sdouble> PGD(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> PGD_Brent(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> PGD0(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
+std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
+Sdouble const& learning_rate_init, Sdouble const& eps, int const& maxIter,
+bool const tracking=false, bool const record=false, std::string const fileExtension="");
+
+std::map<std::string,Sdouble> PGRK2(Eigen::SMatrixXd& X, Eigen::SMatrixXd& Y, int const& L, std::vector<int> const& nbNeurons, std::vector<int> const& globalIndices,
 std::vector<std::string> const& activations, std::vector<Eigen::SMatrixXd>& weights, std::vector<Eigen::SVectorXd>& bias, std::string const& type_perte,
 Sdouble const& learning_rate_init, Sdouble const& eps, int const& maxIter,
 bool const tracking=false, bool const record=false, std::string const fileExtension="");
